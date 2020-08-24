@@ -1,0 +1,22 @@
+﻿<!--Copyright (c) 2020 Jeff East
+    Licensed under the Code Project Open License (CPOL) 1.02-->
+<ItemsControl x:Class="Yawn.DockingChoice"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Yawn"
+             mc:Ignorable="d" 
+             d:DesignHeight="200" d:DesignWidth="200">
+    <ItemsControl.Items>
+        <local:DockingChoicePanel Orientation="Bottom" DataContext="{Binding RelativeSource={RelativeSource AncestorType=local:DockingChoice}, Path=DataContext}"/>
+        <local:DockingChoicePanel Orientation="BottomMost" DataContext="{Binding RelativeSource={RelativeSource AncestorType=local:DockingChoice}, Path=DataContext}"/>
+        <local:DockingChoicePanel Orientation="Center" DataContext="{Binding RelativeSource={RelativeSource AncestorType=local:DockingChoice}, Path=DataContext}"/>
+        <local:DockingChoicePanel Orientation="Left" DataContext="{Binding RelativeSource={RelativeSource AncestorType=local:DockingChoice}, Path=DataContext}"/>
+        <local:DockingChoicePanel Orientation="LeftMost" DataContext="{Binding RelativeSource={RelativeSource AncestorType=local:DockingChoice}, Path=DataContext}"/>
+        <local:DockingChoicePanel Orientation="Right" DataContext="{Binding RelativeSource={RelativeSource AncestorType=local:DockingChoice}, Path=DataContext}"/>
+        <local:DockingChoicePanel Orientation="RightMost" DataContext="{Binding RelativeSource={RelativeSource AncestorType=local:DockingChoice}, Path=DataContext}"/>
+        <local:DockingChoicePanel Orientation="Top" DataContext="{Binding RelativeSource={RelativeSource AncestorType=local:DockingChoice}, Path=DataContext}"/>
+        <local:DockingChoicePanel Orientation="TopMost" DataContext="{Binding RelativeSource={RelativeSource AncestorType=local:DockingChoice}, Path=DataContext}"/>
+    </ItemsControl.Items>
+</ItemsControl>

@@ -1,0 +1,10 @@
+﻿<!--Copyright (c) 2020 Jeff East
+    Licensed under the Code Project Open License (CPOL) 1.02-->
+<UserControl x:Class="Yawn.DockableCollectionItem"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Yawn"
+             mc:Ignorable="d" >
+</UserControl>

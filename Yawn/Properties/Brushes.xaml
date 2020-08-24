@@ -1,0 +1,24 @@
+﻿<!--Copyright (c) 2020 Jeff East
+    Licensed under the Code Project Open License (CPOL) 1.02-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:ctl="clr-namespace:System.Windows.Controls;assembly=presentationframework"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:Yawn"
+    xmlns:res="clr-namespace:Yawn.Properties">
+
+    <SolidColorBrush x:Key="{ComponentResourceKey TypeInTargetAssembly={x:Type local:Dock}, ResourceId={x:Static local:ComponentResourceIds.DockBackground}}" Color="#FF42789E"/>
+    <SolidColorBrush x:Key="{ComponentResourceKey TypeInTargetAssembly={x:Type local:Dock}, ResourceId={x:Static local:ComponentResourceIds.DockForeground}}" Color="White"/>
+    <SolidColorBrush x:Key="{ComponentResourceKey TypeInTargetAssembly={x:Type local:Dock}, ResourceId={x:Static local:ComponentResourceIds.DockAlternateForeground}}" Color="Black"/>
+    <SolidColorBrush x:Key="{ComponentResourceKey TypeInTargetAssembly={x:Type local:Dock}, ResourceId={x:Static local:ComponentResourceIds.DockingChoiceBorderBrush}}" Color="DarkGray"/>
+    <SolidColorBrush x:Key="{ComponentResourceKey TypeInTargetAssembly={x:Type local:Dock}, ResourceId={x:Static local:ComponentResourceIds.DockingChoiceBackground}}" Color="AliceBlue"/>
+    <SolidColorBrush x:Key="{ComponentResourceKey TypeInTargetAssembly={x:Type local:Dock}, ResourceId={x:Static local:ComponentResourceIds.DockingChoiceForeground}}" Color="LightGoldenrodYellow"/>
+    <SolidColorBrush x:Key="{ComponentResourceKey TypeInTargetAssembly={x:Type local:Dock}, ResourceId={x:Static local:ComponentResourceIds.DockingChoiceForegroundHover}}" Color="Goldenrod"/>
+    <SolidColorBrush x:Key="{ComponentResourceKey TypeInTargetAssembly={x:Type local:Dock}, ResourceId={x:Static local:ComponentResourceIds.FloatingWindowEdge}}" Color="DarkGray"/>
+    <SolidColorBrush x:Key="{ComponentResourceKey TypeInTargetAssembly={x:Type local:Dock}, ResourceId={x:Static local:ComponentResourceIds.TabBackground}}" Color="#FF1E3D6A"/>
+    <SolidColorBrush x:Key="{ComponentResourceKey TypeInTargetAssembly={x:Type local:Dock}, ResourceId={x:Static local:ComponentResourceIds.TabForeground}}" Color="White"/>
+    <SolidColorBrush x:Key="{ComponentResourceKey TypeInTargetAssembly={x:Type local:Dock}, ResourceId={x:Static local:ComponentResourceIds.TabText}}" Color="Black"/>
+    <SolidColorBrush x:Key="{ComponentResourceKey TypeInTargetAssembly={x:Type local:Dock}, ResourceId={x:Static local:ComponentResourceIds.TabVisibleBackground}}" Color="Goldenrod"/>
+    <SolidColorBrush x:Key="{ComponentResourceKey TypeInTargetAssembly={x:Type local:Dock}, ResourceId={x:Static local:ComponentResourceIds.TabHoverBackground}}" Color="CornflowerBlue"/>
+</ResourceDictionary>

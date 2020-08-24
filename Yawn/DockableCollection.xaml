@@ -1,0 +1,27 @@
+﻿<!--Copyright (c) 2020 Jeff East
+    Licensed under the Code Project Open License (CPOL) 1.02-->
+<ItemsControl x:Class="Yawn.DockableCollection"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Yawn"
+             mc:Ignorable="d" 
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch"
+             AllowDrop="True"
+             DragEnter="DragDrop_DragEnter_Handler"
+             DragLeave="DragDrop_DragLeave_Handler"
+             DragOver="DragDrop_DragOver_Handler"
+             Drop="DragDrop_Drop_Handler"
+             LostFocus="DockableCollection_LostFocus"
+             MouseEnter="ItemsControl_MouseEnter"
+             MouseLeave="ItemsControl_MouseLeave"
+             MouseMove="ItemsControl_MouseMove">
+    <ItemsControl.CommandBindings>
+        <CommandBinding Command="local:CustomCommands.CloseCommand" Executed="CloseContent_Handler"/>
+        <CommandBinding Command="local:CustomCommands.DockCommand" Executed="Dock_Handler" CanExecute="Dock_HandlerCanRun"/>
+        <CommandBinding Command="local:CustomCommands.FloatCommand" Executed="Float_Handler" CanExecute="Float_HandlerCanRun"/>
+        <CommandBinding Command="local:CustomCommands.ShowCommand" Executed="ShowContent_Handler" CanExecute="ShowContent_HandlerCanRun"/>
+    </ItemsControl.CommandBindings>
+</ItemsControl>

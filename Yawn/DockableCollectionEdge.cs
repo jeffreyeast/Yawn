@@ -280,7 +280,7 @@ namespace Yawn
                         {
                             foreach (LayoutContext replacement in neighbor.Edges[EdgesDockPosition].LogicalReplacements)
                             {
-                                if (!_logicalNeighbors.Contains(replacement) && replacement != LayoutContext)
+                                if (!_logicalNeighbors.Contains(replacement) && !LayoutContext.IsOrthogonallyReachable(replacement, EdgesDockPosition))
                                 {
                                     if (replacement.DockableCollection.IsCollapsed)
                                     {
@@ -292,15 +292,15 @@ namespace Yawn
                         }
                         else if (neighbor.Edges[LayoutContext.OpposingNeighbors[EdgesDockPosition]].LogicalReplacements != null)
                         {
-                            foreach (LayoutContext transitiveNeighbor in neighbor.Edges[EdgesDockPosition].LogicalNeighbors)
+                            foreach (LayoutContext replacement in neighbor.Edges[EdgesDockPosition].LogicalNeighbors)
                             {
-                                if (!_logicalNeighbors.Contains(transitiveNeighbor) && transitiveNeighbor != LayoutContext)
+                                if (!_logicalNeighbors.Contains(replacement) && !LayoutContext.IsOrthogonallyReachable(replacement, EdgesDockPosition))
                                 {
-                                    if (transitiveNeighbor.DockableCollection.IsCollapsed)
+                                    if (replacement.DockableCollection.IsCollapsed)
                                     {
                                         throw new InvalidProgramException();
                                     }
-                                    _logicalNeighbors.AddLast(transitiveNeighbor);
+                                    _logicalNeighbors.AddLast(replacement);
                                 }
                             }
                         }
@@ -394,7 +394,43 @@ namespace Yawn
                 //  The edge(s) through which expansion is likely to occur owns the replacement. Other edges will have a null replacement.
 
                 LayoutContext.ComputeLogicalReplacements(out LinkedList<LayoutContext> contactingEdgeReplacements, out LinkedList<LayoutContext> opposingEdgeReplacements, LayoutContext.OpposingNeighbors[EdgesDockPosition]);
-                _logicalReplacements = contactingEdgeReplacements;
+                if (contactingEdgeReplacements == null)
+                {
+                    _logicalReplacements = opposingEdgeReplacements;
+                }
+                else if (opposingEdgeReplacements == null)
+                {
+                    _logicalReplacements = contactingEdgeReplacements;
+                }
+                else
+                {
+                    _logicalReplacements = new LinkedList<LayoutContext>();
+                    switch (EdgesDockPosition)
+                    {
+                        case System.Windows.Controls.Dock.Left:
+                        case System.Windows.Controls.Dock.Top:
+                            foreach (var entry in contactingEdgeReplacements)
+                            {
+                                _logicalReplacements.AddLast(entry);
+                            }
+                            foreach (var entry in opposingEdgeReplacements)
+                            {
+                                _logicalReplacements.AddLast(entry);
+                            }
+                            break;
+
+                        default:
+                            foreach (var entry in opposingEdgeReplacements)
+                            {
+                                _logicalReplacements.AddLast(entry);
+                            }
+                            foreach (var entry in contactingEdgeReplacements)
+                            {
+                                _logicalReplacements.AddLast(entry);
+                            }
+                            break;
+                    }
+                }
             }
             else
             {

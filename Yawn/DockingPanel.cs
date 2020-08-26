@@ -158,7 +158,7 @@ namespace Yawn
             {
                 if (_horizontalSilos == null)
                 {
-                    LayoutContext topLeftChild = LayoutContext.TopLeftMostChild(LayoutContexts[0]);
+                    LayoutContext topLeftChild = LayoutContext.TopLeftMostVisibleChild(LayoutContexts[0]);
                     _horizontalSilos = topLeftChild.BuildHorizontalSilos();
                 }
                 return _horizontalSilos;
@@ -172,7 +172,7 @@ namespace Yawn
             {
                 if (_verticalSilos == null)
                 {
-                    LayoutContext topLeftChild = LayoutContext.TopLeftMostChild(LayoutContexts[0]);
+                    LayoutContext topLeftChild = LayoutContext.TopLeftMostVisibleChild(LayoutContexts[0]);
                     _verticalSilos = topLeftChild.BuildVerticalSilos();
                 }
                 return _verticalSilos;

@@ -314,12 +314,12 @@ namespace Yawn
 
         internal List<Silo> BuildHorizontalSilos()
         {
-            return TopLeftMostChild(this).BuildSilos(System.Windows.Controls.Dock.Right);
+            return BuildSilos(System.Windows.Controls.Dock.Right);
         }
 
         internal List<Silo> BuildVerticalSilos()
         {
-            return TopLeftMostChild(this).BuildSilos(System.Windows.Controls.Dock.Bottom);
+            return BuildSilos(System.Windows.Controls.Dock.Bottom);
         }
 
         internal void ClearSplitterContext(System.Windows.Controls.Dock dockPosition)
@@ -738,6 +738,30 @@ namespace Yawn
             return GetExteriorEdge(dockPosition).FirstOrDefault() == null;
         }
 
+        internal bool IsOrthogonallyReachable(LayoutContext layoutContext, System.Windows.Controls.Dock seekDirection)
+        {
+            return (layoutContext == this) || IsReachable(layoutContext, ClockwisePeers[seekDirection]) || IsReachable(layoutContext, CounterClockwisePeers[seekDirection]);
+        }
+
+        private bool IsReachable(LayoutContext layoutContext, System.Windows.Controls.Dock seekDirection)
+        {
+            foreach (var peer in Edges[seekDirection].PhysicalNeighbors)
+            {
+                if (layoutContext == peer)
+                {
+                    return true;
+                }
+            }
+            foreach (var peer in Edges[seekDirection].PhysicalNeighbors)
+            {
+                if (peer.IsReachable(layoutContext, seekDirection))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private LayoutContext NextBottomMostRightPeer
         {
             get
@@ -969,6 +993,16 @@ namespace Yawn
                 child = nextChild;
             }
             return child;
+        }
+
+        internal static LayoutContext TopLeftMostVisibleChild(LayoutContext child)
+        {
+            LayoutContext nextChild;
+            while ((nextChild = child.Edges[System.Windows.Controls.Dock.Top].PhysicalNeighbors.FirstOrDefault() ?? child.Edges[System.Windows.Controls.Dock.Left].PhysicalNeighbors.FirstOrDefault()) != null)
+            {
+                child = nextChild;
+            }
+            return child.DockableCollection.IsCollapsed ? child.Edges[System.Windows.Controls.Dock.Right].LogicalReplacements.FirstOrDefault() ?? child.Edges[System.Windows.Controls.Dock.Bottom].LogicalReplacements.FirstOrDefault() : child;
         }
 
         internal static LayoutContext TopRightMostChild(LayoutContext child)

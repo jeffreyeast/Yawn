@@ -31,11 +31,11 @@ namespace Yawn
             //  Try to figure the amount of space available to all the remaining varying elements *at our level*
 
             double fixedSpace = 0;
-            int varyingGroupCount = varyingElements.Count;
+            int varyingGroupCount = 0;
 
             GetFixedSpaceInternal(varyingElements.Last(), false, ref fixedSpace, ref varyingGroupCount, elementsToBePositioned);
 
-            double varyingSpace = (availableSpace - fixedSpace) * ((double)varyingElements.Count) / (double)varyingGroupCount;
+            double varyingSpace = (availableSpace - fixedSpace) * ((double)varyingElements.Count) / (double)(varyingElements.Count + varyingGroupCount);
             return Math.Max(varyingSpace, varyingGroupCount * minSpacePerElement);
         }
 
@@ -74,6 +74,14 @@ namespace Yawn
 
         protected override void GetFixedSpaceInternal(LayoutContext root, bool inVaryingGroup, ref double fixedSpace, ref int varyingGroupCount, List<LayoutContext> elementsToBePositioned)
         {
+            foreach (LayoutContext peer in root.Edges[System.Windows.Controls.Dock.Right].LogicalNeighbors)
+            {
+                if (peer.Left.HasValue)
+                {
+                    return;
+                }
+            }
+
             double subtreesFixedSpace = 0;
             int subtreesVaryingGroupCount = 0;
 
@@ -220,6 +228,14 @@ namespace Yawn
 
         protected override void GetFixedSpaceInternal(LayoutContext root, bool inVaryingGroup, ref double fixedSpace, ref int varyingGroupCount, List<LayoutContext> elementsToBePositioned)
         {
+            foreach (LayoutContext peer in root.Edges[System.Windows.Controls.Dock.Bottom].LogicalNeighbors)
+            {
+                if (peer.Top.HasValue)
+                {
+                    return;
+                }
+            }
+
             double subtreesFixedSpace = 0;
             int subtreesVaryingGroupCount = 0;
 

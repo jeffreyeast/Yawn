@@ -381,9 +381,11 @@ namespace Yawn
 
         internal void DumpEdges(bool force = false)
         {
-            foreach (System.Windows.Controls.Dock edgesDockPosition in Enum.GetValues(typeof(System.Windows.Controls.Dock)))
+            string header = ToString() + ": State = " + DockableCollection.State.ToString() + Environment.NewLine + "    ";
+            foreach (System.Windows.Controls.Dock edgesDockPosition in ClockwisePeers.Keys)
             {
-                Edges[edgesDockPosition].DumpEdges(force);
+                Edges[edgesDockPosition].DumpEdges(force, header);
+                header = "    ";
             }
         }
 
@@ -721,6 +723,7 @@ namespace Yawn
 
         internal bool IsLogicalPreceeding(LinkedList<LayoutContext> interiorLogicalEdge, LayoutContext referenceContext, System.Windows.Controls.Dock dockEdgesPosition)
         {
+            // I think this is bogus
             do
             {
                 if (referenceContext.Edges[MinimumOrthogonalEdge[dockEdgesPosition]].LogicalNeighbors.Contains(this))
@@ -738,23 +741,15 @@ namespace Yawn
             return GetExteriorEdge(dockPosition).FirstOrDefault() == null;
         }
 
-        internal bool IsOrthogonallyReachable(LayoutContext layoutContext, System.Windows.Controls.Dock seekDirection)
+        internal bool IsPhysicallyReachable(LayoutContext targetLayoutContext, System.Windows.Controls.Dock seekDirection)
         {
-            return (layoutContext == this) || IsReachable(layoutContext, ClockwisePeers[seekDirection]) || IsReachable(layoutContext, CounterClockwisePeers[seekDirection]);
-        }
-
-        private bool IsReachable(LayoutContext layoutContext, System.Windows.Controls.Dock seekDirection)
-        {
-            foreach (var peer in Edges[seekDirection].PhysicalNeighbors)
+            foreach (var neighbor in Edges[seekDirection].ExteriorPhysicalEdge)
             {
-                if (layoutContext == peer)
+                if (neighbor == targetLayoutContext)
                 {
                     return true;
                 }
-            }
-            foreach (var peer in Edges[seekDirection].PhysicalNeighbors)
-            {
-                if (peer.IsReachable(layoutContext, seekDirection))
+                if (neighbor.IsPhysicallyReachable(targetLayoutContext, seekDirection))
                 {
                     return true;
                 }
@@ -829,17 +824,21 @@ namespace Yawn
             CopyVertical,
         }
 
-        private bool IsHorizontalIsomorphWithLeftPeer => Edges[System.Windows.Controls.Dock.Left].PhysicalNeighbors.Count == 1 && 
-            Edges[System.Windows.Controls.Dock.Left].PhysicalNeighbors.First.Value.Edges[System.Windows.Controls.Dock.Right].PhysicalNeighbors.Count == 1;
+        private bool IsHorizontalIsomorphWithLeftPeer =>
+            Edges[System.Windows.Controls.Dock.Left].ExteriorPhysicalEdge.FirstOrDefault()?.Edges[System.Windows.Controls.Dock.Right].ExteriorPhysicalEdge.FirstOrDefault() == this &&
+            Edges[System.Windows.Controls.Dock.Left].ExteriorPhysicalEdge.LastOrDefault()?.Edges[System.Windows.Controls.Dock.Right].ExteriorPhysicalEdge.LastOrDefault() == this;
 
-        private bool IsHorizontalIsomorphWithRightPeer => Edges[System.Windows.Controls.Dock.Right].PhysicalNeighbors.Count == 1 && 
-            Edges[System.Windows.Controls.Dock.Right].PhysicalNeighbors.First.Value.Edges[System.Windows.Controls.Dock.Left].PhysicalNeighbors.Count == 1;
+        private bool IsHorizontalIsomorphWithRightPeer =>
+            Edges[System.Windows.Controls.Dock.Right].ExteriorPhysicalEdge.FirstOrDefault()?.Edges[System.Windows.Controls.Dock.Left].ExteriorPhysicalEdge.FirstOrDefault() == this &&
+            Edges[System.Windows.Controls.Dock.Right].ExteriorPhysicalEdge.LastOrDefault()?.Edges[System.Windows.Controls.Dock.Left].ExteriorPhysicalEdge.LastOrDefault() == this;
 
-        private bool IsVerticalIsomorphWithBottomPeer => Edges[System.Windows.Controls.Dock.Bottom].PhysicalNeighbors.Count == 1 && 
-            Edges[System.Windows.Controls.Dock.Bottom].PhysicalNeighbors.First.Value.Edges[System.Windows.Controls.Dock.Top].PhysicalNeighbors.Count == 1;
+        private bool IsVerticalIsomorphWithBottomPeer =>
+            Edges[System.Windows.Controls.Dock.Bottom].ExteriorPhysicalEdge.FirstOrDefault()?.Edges[System.Windows.Controls.Dock.Top].ExteriorPhysicalEdge.FirstOrDefault() == this &&
+            Edges[System.Windows.Controls.Dock.Bottom].ExteriorPhysicalEdge.LastOrDefault()?.Edges[System.Windows.Controls.Dock.Top].ExteriorPhysicalEdge.LastOrDefault() == this;
 
-        private bool IsVerticalIsomorphWithTopPeer => Edges[System.Windows.Controls.Dock.Top].PhysicalNeighbors.Count == 1 && 
-            Edges[System.Windows.Controls.Dock.Top].PhysicalNeighbors.First.Value.Edges[System.Windows.Controls.Dock.Bottom].PhysicalNeighbors.Count == 1;
+        private bool IsVerticalIsomorphWithTopPeer =>
+            Edges[System.Windows.Controls.Dock.Top].ExteriorPhysicalEdge.FirstOrDefault()?.Edges[System.Windows.Controls.Dock.Bottom].ExteriorPhysicalEdge.FirstOrDefault() == this &&
+            Edges[System.Windows.Controls.Dock.Top].ExteriorPhysicalEdge.LastOrDefault()?.Edges[System.Windows.Controls.Dock.Bottom].ExteriorPhysicalEdge.LastOrDefault() == this;
 
         internal void Remove()
         {

@@ -290,35 +290,38 @@ namespace Yawn
 
         private void DockableCollection_LostFocus(object sender, RoutedEventArgs e)
         {
-            switch (State)
+            if (!IsKeyboardFocusWithin)
             {
-                case States.Constructed:
-                case States.Loaded:
-                case States.Pinned:
-                case States.PinnedAndEmpty:
-                case States.UnPinnedAndCollapsed:
-                case States.UnPinnedAndEmpty:
-                    break;
-                case States.UnPinnedAndVisible:
-                    if (Dock != null && Dock.Items.Count > 1)
-                    {
-                        if (DockingPanel.GetDockPosition(this).HasValue)
+                switch (State)
+                {
+                    case States.Constructed:
+                    case States.Loaded:
+                    case States.Pinned:
+                    case States.PinnedAndEmpty:
+                    case States.UnPinnedAndCollapsed:
+                    case States.UnPinnedAndEmpty:
+                        break;
+                    case States.UnPinnedAndVisible:
+                        if (Dock != null && Dock.Items.Count > 1)
                         {
-                            CollapsedTabPosition = DockingPanel.GetDockPosition(this).Value;
-                            if (CollapsedTabPosition == System.Windows.Controls.Dock.Top)
+                            if (DockingPanel.GetDockPosition(this).HasValue)
+                            {
+                                CollapsedTabPosition = DockingPanel.GetDockPosition(this).Value;
+                                if (CollapsedTabPosition == System.Windows.Controls.Dock.Top)
+                                {
+                                    CollapsedTabPosition = System.Windows.Controls.Dock.Bottom;
+                                }
+                            }
+                            else
                             {
                                 CollapsedTabPosition = System.Windows.Controls.Dock.Bottom;
                             }
+                            State = States.UnPinnedAndCollapsed;
                         }
-                        else
-                        {
-                            CollapsedTabPosition = System.Windows.Controls.Dock.Bottom;
-                        }
-                        State = States.UnPinnedAndCollapsed;
-                    }
-                    break;
-                default:
-                    throw new NotImplementedException();
+                        break;
+                    default:
+                        throw new NotImplementedException();
+                }
             }
         }
 

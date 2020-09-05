@@ -185,32 +185,6 @@ namespace Yawn
             }
         }
 
-        private void ComputeLogicalOutwardEdges()
-        {
-            //  This turns out to be surprisingly difficult. 
-            //  Gather the set of edge members and insert them into the list top-to-bottom, left-to-right
-
-            foreach (LayoutContext layoutContext in LayoutContext.DockingPanel.LayoutContexts)
-            {
-                if (!layoutContext.DockableCollection.IsCollapsed &&
-                    layoutContext.Edges[EdgesDockPosition].LogicalNeighbors.Count == 0)
-                {
-                    for (LinkedListNode<LayoutContext> node = _interiorLogicalEdge.First; node != null; node = node.Next)
-                    {
-                        if (layoutContext.IsLogicalPreceeding(_interiorLogicalEdge, node.Value, EdgesDockPosition))
-                        {
-                            _interiorLogicalEdge.AddBefore(node, layoutContext);
-                            goto nextNode;
-                        }
-                    }
-
-                    _interiorLogicalEdge.AddLast(layoutContext);
-
-                nextNode:;
-                }
-            }
-        }
-
         private void ComputeLogicalInwardEdges()
         {
             HashSet<LayoutContext> processedCollections = new HashSet<LayoutContext>();
@@ -278,29 +252,53 @@ namespace Yawn
                     {
                         if (neighbor.Edges[EdgesDockPosition].LogicalReplacements != null)
                         {
+#if DEBUG
+                            //  The adjacent and opposing replacement sets should be identical
+
+                            Debug.Assert(neighbor.Edges[LayoutContext.OpposingNeighbors[EdgesDockPosition]].LogicalReplacements != null);
+                            LinkedListNode<LayoutContext> adjacentLink = neighbor.Edges[EdgesDockPosition].LogicalReplacements.First;
+                            LinkedListNode<LayoutContext> opposingLink = neighbor.Edges[LayoutContext.OpposingNeighbors[EdgesDockPosition]].LogicalReplacements.First;
+                            while (adjacentLink != null || opposingLink != null)
+                            {
+                                Debug.Assert(adjacentLink != null && opposingLink != null);
+                                Debug.Assert(adjacentLink.Value == opposingLink.Value);
+                                adjacentLink = adjacentLink.Next;
+                                opposingLink = opposingLink.Next;
+                            }
+#endif
+                            //  If we have a replacement that is reachable, that replacement is the neighbor
+
+                            bool foundLogicalNeighbors = false;
                             foreach (LayoutContext replacement in neighbor.Edges[EdgesDockPosition].LogicalReplacements)
                             {
-                                if (!_logicalNeighbors.Contains(replacement) && !LayoutContext.IsOrthogonallyReachable(replacement, EdgesDockPosition))
+                                if (LayoutContext.IsPhysicallyReachable(replacement, EdgesDockPosition))
                                 {
-                                    if (replacement.DockableCollection.IsCollapsed)
+                                    foundLogicalNeighbors = true;
+                                    if (!_logicalNeighbors.Contains(replacement))
                                     {
-                                        throw new InvalidProgramException();
+                                        if (replacement.DockableCollection.IsCollapsed)
+                                        {
+                                            throw new InvalidProgramException();
+                                        }
+                                        _logicalNeighbors.AddLast(replacement);
                                     }
-                                    _logicalNeighbors.AddLast(replacement);
                                 }
                             }
-                        }
-                        else if (neighbor.Edges[LayoutContext.OpposingNeighbors[EdgesDockPosition]].LogicalReplacements != null)
-                        {
-                            foreach (LayoutContext replacement in neighbor.Edges[EdgesDockPosition].LogicalNeighbors)
+
+                            //  If we found no replacement, then the neighbors are the logical neighbors of the collapsed member
+
+                            if (!foundLogicalNeighbors)
                             {
-                                if (!_logicalNeighbors.Contains(replacement) && !LayoutContext.IsOrthogonallyReachable(replacement, EdgesDockPosition))
+                                foreach (var logicalNeighbor in neighbor.Edges[EdgesDockPosition].LogicalNeighbors)
                                 {
-                                    if (replacement.DockableCollection.IsCollapsed)
+                                    if (!_logicalNeighbors.Contains(logicalNeighbor))
                                     {
-                                        throw new InvalidProgramException();
+                                        if (logicalNeighbor.DockableCollection.IsCollapsed)
+                                        {
+                                            throw new InvalidProgramException();
+                                        }
+                                        _logicalNeighbors.AddLast(logicalNeighbor);
                                     }
-                                    _logicalNeighbors.AddLast(replacement);
                                 }
                             }
                         }
@@ -314,6 +312,36 @@ namespace Yawn
             else
             {
                 _logicalNeighbors = PhysicalNeighbors;
+            }
+        }
+
+        private void ComputeLogicalOutwardEdges()
+        {
+            //  This turns out to be surprisingly difficult. 
+            //  Gather the set of edge members and insert them into the list top-to-bottom, left-to-right
+
+            foreach (LayoutContext layoutContext in LayoutContext.DockingPanel.LayoutContexts)
+            {
+                //  Check if the member is non-collapsed and on an edge
+
+                if (!layoutContext.DockableCollection.IsCollapsed &&
+                    layoutContext.Edges[EdgesDockPosition].LogicalNeighbors.Count == 0)
+                {
+                    // It qualified, find it's insertion position (left to right, top to bottom)
+
+                    for (LinkedListNode<LayoutContext> node = _interiorLogicalEdge.First; node != null; node = node.Next)
+                    {
+                        if (layoutContext.IsLogicalPreceeding(_interiorLogicalEdge, node.Value, EdgesDockPosition))
+                        {
+                            _interiorLogicalEdge.AddBefore(node, layoutContext);
+                            goto nextNode;
+                        }
+                    }
+
+                    _interiorLogicalEdge.AddLast(layoutContext);
+
+                nextNode:;
+                }
             }
         }
 
@@ -454,38 +482,6 @@ namespace Yawn
         }
 
         /// <summary>
-        /// Computes physical edge members for a side that is on the edge of the dock.
-        /// </summary>
-        private void ComputePhysicalOutwardEdges()
-        {
-            LayoutContext peer;
-
-            _exteriorPhysicalEdge = new LinkedList<LayoutContext>();
-            _interiorPhysicalEdge = new LinkedList<LayoutContext>();
-
-            switch (EdgesDockPosition)
-            {
-                case System.Windows.Controls.Dock.Bottom:
-                    peer = LayoutContext.BottomLeftMostChild(LayoutContext);
-                    break;
-                case System.Windows.Controls.Dock.Right:
-                    peer = LayoutContext.TopRightMostChild(LayoutContext);
-                    break;
-                case System.Windows.Controls.Dock.Left:
-                case System.Windows.Controls.Dock.Top:
-                    peer = LayoutContext.TopLeftMostChild(LayoutContext);
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
-
-            do
-            {
-                _interiorPhysicalEdge.AddLast(peer);
-            } while ((peer = peer.Edges[LayoutContext.MaximumOrthogonalEdge[EdgesDockPosition]].PhysicalNeighbors.FirstOrDefault()) != null);
-        }
-
-        /// <summary>
         /// Computes physical edge members for a side that is not on the edge of the dock.
         /// </summary>
         private void ComputePhysicalInwardEdges()
@@ -530,15 +526,124 @@ namespace Yawn
                      !processedCollections.Contains(interiorNode.Value.Edges[EdgesDockPosition].PhysicalNeighbors.Last.Value));
         }
 
-        internal void DumpEdges(bool force = false)
+        /// <summary>
+        /// Computes physical edge members for a side that is on the edge of the dock.
+        /// </summary>
+        private void ComputePhysicalOutwardEdges()
+        {
+            LayoutContext peer;
+
+            _exteriorPhysicalEdge = new LinkedList<LayoutContext>();
+            _interiorPhysicalEdge = new LinkedList<LayoutContext>();
+
+            switch (EdgesDockPosition)
+            {
+                case System.Windows.Controls.Dock.Bottom:
+                    peer = LayoutContext.BottomLeftMostChild(LayoutContext);
+                    break;
+                case System.Windows.Controls.Dock.Right:
+                    peer = LayoutContext.TopRightMostChild(LayoutContext);
+                    break;
+                case System.Windows.Controls.Dock.Left:
+                case System.Windows.Controls.Dock.Top:
+                    peer = LayoutContext.TopLeftMostChild(LayoutContext);
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+
+            do
+            {
+                _interiorPhysicalEdge.AddLast(peer);
+                switch (EdgesDockPosition)
+                {
+                    case System.Windows.Controls.Dock.Bottom:
+                    case System.Windows.Controls.Dock.Right:
+                        peer = peer.Edges[LayoutContext.MaximumOrthogonalEdge[EdgesDockPosition]].PhysicalNeighbors.LastOrDefault();
+                        break;
+                    case System.Windows.Controls.Dock.Left:
+                    case System.Windows.Controls.Dock.Top:
+                        peer = peer.Edges[LayoutContext.MaximumOrthogonalEdge[EdgesDockPosition]].PhysicalNeighbors.FirstOrDefault();
+                        break;
+                    default:
+                        throw new NotImplementedException();
+                }
+            } while (peer != null);
+        }
+
+        internal void DumpEdges(bool force = false, string header = null)
         {
             if (force)
             {
+                ComputePhysicalEdges();
                 ComputeLogicalRelationships(RelationshipStatus.EdgesKnown);
             }
 
-            string buffer = "    " + ToString() + ": State: " + CurrentRelationshipLevel.ToString() + "; Logical Neighbors: ";
+            if (CurrentRelationshipLevel == RelationshipStatus.NotBuiltYet)
+            {
+                Debug.Print(header + EdgesDockPosition.ToString() + ": State: " + CurrentRelationshipLevel.ToString());
+            }
+            else
+            {
+                DumpEdgesInternal(header);
+            }
+        }
+
+        private void DumpEdgesInternal(string header)
+        {
+            if (header == null)
+            {
+                header = LayoutContext.ToString() + " ";
+            }
+
+            string buffer = header + EdgesDockPosition.ToString() + ": State: " + CurrentRelationshipLevel.ToString() + "; Physical Neighbors: ";
             string separator = "";
+            if (PhysicalNeighbors == null)
+            {
+                buffer += "<null>";
+            }
+            else
+            {
+                foreach (LayoutContext layoutContext in PhysicalNeighbors)
+                {
+                    buffer += separator + "[" + layoutContext.ToString() + "]";
+                    separator = ",";
+                }
+            }
+
+            buffer += "; Int Phys Edge: ";
+            separator = "";
+            if (_interiorPhysicalEdge == null)
+            {
+                buffer += "<null>";
+            }
+            else
+            {
+                foreach (LayoutContext layoutContext in _interiorPhysicalEdge)
+                {
+                    buffer += separator + "[" + layoutContext.ToString() + "]";
+                    separator = ",";
+                }
+            }
+
+            buffer += "; Ext Phys Edge: ";
+            separator = "";
+            if (_exteriorPhysicalEdge == null)
+            {
+                buffer += "<null>";
+            }
+            else
+            {
+                foreach (LayoutContext layoutContext in _exteriorPhysicalEdge)
+                {
+                    buffer += separator + "[" + layoutContext.ToString() + "]";
+                    separator = ",";
+                }
+            }
+            Debug.Print(buffer);
+
+            buffer = "        Logical Neighbors: ";
+            separator = "";
             if (_logicalNeighbors == null)
             {
                 buffer += "<null>";
@@ -551,7 +656,23 @@ namespace Yawn
                     separator = ",";
                 }
             }
-            buffer += "; Interior: ";
+
+            buffer += "; Log Replacements: ";
+            separator = "";
+            if (_logicalReplacements == null)
+            {
+                buffer += "<null>";
+            }
+            else
+            {
+                foreach (LayoutContext layoutContext in _logicalReplacements)
+                {
+                    buffer += separator + "[" + layoutContext.ToString() + "]";
+                    separator = ",";
+                }
+            }
+
+            buffer += "; Int Log Edge: ";
             separator = "";
             if (_interiorLogicalEdge == null)
             {
@@ -565,7 +686,8 @@ namespace Yawn
                     separator = ",";
                 }
             }
-            buffer += "; Exterior: ";
+
+            buffer += "; Ext Log Edge: ";
             separator = "";
             if (_exteriorLogicalEdge == null)
             {

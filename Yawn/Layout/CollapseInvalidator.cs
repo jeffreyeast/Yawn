@@ -20,8 +20,18 @@ namespace Yawn
         }
 
 
-        internal static bool InvalidateNeighbors(DockingPanel dockingPanel, LayoutContext root, System.Windows.Controls.Dock edge)
+        internal static void InvalidateNeighbors(DockingPanel dockingPanel, LayoutContext root, System.Windows.Controls.Dock edge)
         {
+#if true
+            DockableCollectionEdge workingEdge = root.Edges[edge];
+            if (workingEdge.LogicalReplacements != null)
+            {
+                foreach (LayoutContext layoutContext in workingEdge.LogicalReplacements)
+                {
+                    layoutContext.InvalidatePositioning(LayoutContext.DockPositionToPositionClass[edge]);
+                }
+            }
+#else
             HashSet<LayoutContext> neighbors = new HashSet<LayoutContext>(root.Edges[edge].PhysicalNeighbors);
             HashSet<LayoutContext> preceedingNeighbors = new HashSet<LayoutContext>();
             HashSet<LayoutContext> rootsClockwiseNeighbors = new HashSet<LayoutContext>(root.Edges[LayoutContext.ClockwisePeers[edge]].PhysicalNeighbors);
@@ -134,6 +144,7 @@ namespace Yawn
             }
 
             return false;
+#endif
         }
     }
 }

@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace Yawn
 {
@@ -708,16 +709,15 @@ namespace Yawn
             if ((positionClass & PositionClasses.Internal) == PositionClasses.Internal)
             {
                 DockableCollection.InvalidateMeasure();
-                DockableCollection.InvalidateArrange();
             }
 
             if ((positionClass & PositionClasses.Collapse) == PositionClasses.Collapse)
             {
+                DockingPanel.InvalidateLogical();
                 CollapseInvalidator.InvalidateNeighbors(DockingPanel, this, System.Windows.Controls.Dock.Right);
                 CollapseInvalidator.InvalidateNeighbors(DockingPanel, this, System.Windows.Controls.Dock.Left);
                 CollapseInvalidator.InvalidateNeighbors(DockingPanel, this, System.Windows.Controls.Dock.Top);
                 CollapseInvalidator.InvalidateNeighbors(DockingPanel, this, System.Windows.Controls.Dock.Bottom);
-                DockingPanel.InvalidateLogical();
             }
         }
 

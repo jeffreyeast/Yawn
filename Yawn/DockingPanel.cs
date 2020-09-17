@@ -316,6 +316,7 @@ namespace Yawn
                 {
                     foreach (var layoutContext in LayoutContexts)
                     {
+#if true
                         //  If the DockableCollection's width or height are fixed below our minimum value, release them
 
                         if (!double.IsNaN(layoutContext.DockableCollection.Height))
@@ -340,7 +341,7 @@ namespace Yawn
                                 layoutContext.ClearSplitterContext(System.Windows.Controls.Dock.Right);
                             }
                         }
-
+#endif
                         //  And finish laying out the DockableCollection
 
                         layoutContext.DockableCollection.Arrange(layoutContext.DockableCollection.IsCollapsed ? new Rect() : layoutContext.Bounds);

@@ -138,7 +138,13 @@ namespace Yawn
                     _state = value;
                     if (_state == States.UnPinnedAndVisible)
                     {
-                        Focus();
+                        Dispatcher.BeginInvoke((Action)delegate
+                        {
+                            if (_state == States.UnPinnedAndVisible)
+                            {
+                                Focus();
+                            }
+                        }, System.Windows.Threading.DispatcherPriority.Normal);
                     }
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("State"));
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("IsCollapsed"));
@@ -699,7 +705,7 @@ namespace Yawn
                 case Visibility.Visible:
                     if (DockingPanel.GetLayoutContext(this) is LayoutContext layoutContext)
                     {
-                        layoutContext.InvalidatePositioning(LayoutContext.PositionClasses.Collapse);
+                        layoutContext.InvalidatePositioning(LayoutContext.PositionClasses.Collapse | LayoutContext.PositionClasses.Internal);
                     }
                     break;
                 default:
@@ -718,6 +724,10 @@ namespace Yawn
 
         public void Show(FrameworkElement frameworkElement)
         {
+            if (State == States.UnPinnedAndCollapsed)
+            {
+                State = States.UnPinnedAndVisible;
+            }
             SetVisibleContent(frameworkElement);
         }
 

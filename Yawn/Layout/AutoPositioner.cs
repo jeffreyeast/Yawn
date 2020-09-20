@@ -16,8 +16,8 @@ namespace Yawn
             bool IsStretchable(LayoutContext element);
             double GetAvailableSpace(Silo silo, LayoutContext element, double baseCoordinate, double totalAvailableSpace, List<LayoutContext> elementsToBePositioned);
             LayoutContext GetNextDescendant(Silo silo, LayoutContext element, List<LayoutContext> elementsToBePositioned);
-            double GetDesiredSpace(LayoutContext element);
-            double GetPeersMaxDesiredSpace(LayoutContext element, List<LayoutContext> elementsToBePositioned);
+            double GetDesiredSpace(LayoutContext element, double minimumSize);
+            double GetPeersMaxDesiredSpace(LayoutContext element, double minimumSize, List<LayoutContext> elementsToBePositioned);
             double GetPreceedingCoordinate(LayoutContext element);
             int GetRemainingDepth(Silo silo, LayoutContext element, List<LayoutContext> elementsToBePositioned);
             double GetVaryingSpace(Silo silo, double availableSpace, double minSpacePerElement, List<LayoutContext> varyingElements, List<LayoutContext> elementsToBePositioned);
@@ -86,7 +86,7 @@ namespace Yawn
                         continue;
 
                     case States.FirstFixedElement:
-                        double fixedSize = client.GetPeersMaxDesiredSpace(currentElement, elementsToBePositioned);
+                        double fixedSize = client.GetPeersMaxDesiredSpace(currentElement, minimumSize, elementsToBePositioned);
                         elementsToBePositioned.Remove(currentElement);
                         int remainingDepth = client.GetRemainingDepth(silo, currentElement, elementsToBePositioned);
                         availableSpace = client.GetAvailableSpace(silo, currentElement, runningCoordinate, totalAvailableSpace, elementsToBePositioned);

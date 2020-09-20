@@ -1001,7 +1001,7 @@ namespace Yawn
             {
                 child = nextChild;
             }
-            return child.DockableCollection.IsCollapsed ? child.Edges[System.Windows.Controls.Dock.Right].LogicalReplacements.FirstOrDefault() ?? child.Edges[System.Windows.Controls.Dock.Bottom].LogicalReplacements.FirstOrDefault() : child;
+            return child.DockableCollection.IsCollapsed ? child.Edges[System.Windows.Controls.Dock.Right].LogicalReplacements?.FirstOrDefault() ?? child.Edges[System.Windows.Controls.Dock.Bottom].LogicalReplacements.FirstOrDefault() : child;
         }
 
         internal static LayoutContext TopRightMostChild(LayoutContext child)

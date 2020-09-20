@@ -18,11 +18,11 @@ namespace Yawn
             return MinBoundary(element, totalAvailableSpace) - baseCoordinate;
         }
 
-        public abstract double GetDesiredSpace(LayoutContext element);
+        public abstract double GetDesiredSpace(LayoutContext element, double minimumSize);
 
         public abstract LayoutContext GetNextDescendant(Silo silo, LayoutContext element, List<LayoutContext> elementsToBePositioned);
 
-        public abstract double GetPeersMaxDesiredSpace(LayoutContext element, List<LayoutContext> elementsToBePositioned);
+        public abstract double GetPeersMaxDesiredSpace(LayoutContext element, double minimumSize, List<LayoutContext> elementsToBePositioned);
 
         public abstract double GetPreceedingCoordinate(LayoutContext element);
 
@@ -33,13 +33,13 @@ namespace Yawn
             double fixedSpace = 0;
             int varyingGroupCount = 0;
 
-            GetFixedSpaceInternal(varyingElements.Last(), false, ref fixedSpace, ref varyingGroupCount, elementsToBePositioned);
+            GetFixedSpaceInternal(varyingElements.Last(), false, ref fixedSpace, ref varyingGroupCount, minSpacePerElement, elementsToBePositioned);
 
             double varyingSpace = (availableSpace - fixedSpace) * ((double)varyingElements.Count) / (double)(varyingElements.Count + varyingGroupCount);
             return Math.Max(varyingSpace, varyingGroupCount * minSpacePerElement);
         }
 
-        protected abstract void GetFixedSpaceInternal(LayoutContext root, bool inVaryingGroup, ref double fixedSpace, ref int varyingGroupCount, List<LayoutContext> elementsToBePositioned);
+        protected abstract void GetFixedSpaceInternal(LayoutContext root, bool inVaryingGroup, ref double fixedSpace, ref int varyingGroupCount, double minimumSize, List<LayoutContext> elementsToBePositioned);
 
         public abstract int GetRemainingDepth(Silo silo, LayoutContext element, List<LayoutContext> elementsToBePositioned);
 
@@ -55,9 +55,9 @@ namespace Yawn
 
     internal class HorizontalClient : AutoPositionerClient
     {
-        public override double GetDesiredSpace(LayoutContext element)
+        public override double GetDesiredSpace(LayoutContext element, double minimumSize)
         {
-            return element.Width.HasValue ? element.Width.Value : element.DockableCollection.DesiredSize.Width;
+            return Math.Max(element.Width.HasValue ? element.Width.Value : element.DockableCollection.DesiredSize.Width, minimumSize);
         }
 
         public override LayoutContext GetNextDescendant(Silo silo, LayoutContext element, List<LayoutContext> elementsToBePositioned)
@@ -72,7 +72,7 @@ namespace Yawn
             return null;
         }
 
-        protected override void GetFixedSpaceInternal(LayoutContext root, bool inVaryingGroup, ref double fixedSpace, ref int varyingGroupCount, List<LayoutContext> elementsToBePositioned)
+        protected override void GetFixedSpaceInternal(LayoutContext root, bool inVaryingGroup, ref double fixedSpace, ref int varyingGroupCount, double minimumSize, List<LayoutContext> elementsToBePositioned)
         {
             foreach (LayoutContext peer in root.Edges[System.Windows.Controls.Dock.Right].LogicalNeighbors)
             {
@@ -101,10 +101,10 @@ namespace Yawn
                     else
                     {
                         thisPeersSubtreeInVaryingGroup = false;
-                        thisPeersSubtreesFixedSpace += GetDesiredSpace(peer);
+                        thisPeersSubtreesFixedSpace += GetDesiredSpace(peer, minimumSize);
                     }
 
-                    GetFixedSpaceInternal(peer, thisPeersSubtreeInVaryingGroup, ref thisPeersSubtreesFixedSpace, ref thisPeersSubtreesVaryingGroupCount, elementsToBePositioned);
+                    GetFixedSpaceInternal(peer, thisPeersSubtreeInVaryingGroup, ref thisPeersSubtreesFixedSpace, ref thisPeersSubtreesVaryingGroupCount, minimumSize, elementsToBePositioned);
 
                     subtreesFixedSpace = Math.Max(subtreesFixedSpace, thisPeersSubtreesFixedSpace);
                     subtreesVaryingGroupCount = Math.Max(subtreesVaryingGroupCount, thisPeersSubtreesVaryingGroupCount);
@@ -115,7 +115,7 @@ namespace Yawn
             varyingGroupCount += subtreesVaryingGroupCount;
         }
 
-        public override double GetPeersMaxDesiredSpace(LayoutContext element, List<LayoutContext> elementsToBePositioned)
+        public override double GetPeersMaxDesiredSpace(LayoutContext element, double minimumSize, List<LayoutContext> elementsToBePositioned)
         {
             if (element.Width.HasValue)
             {
@@ -129,7 +129,7 @@ namespace Yawn
                 {
                     if (elementsToBePositioned.Contains(peer))
                     {
-                        maxDesiredSpace = Math.Max(maxDesiredSpace, GetDesiredSpace(peer));
+                        maxDesiredSpace = Math.Max(maxDesiredSpace, GetDesiredSpace(peer, minimumSize));
                     }
                 }
 
@@ -221,12 +221,12 @@ namespace Yawn
 
     internal class VerticalClient : AutoPositionerClient
     {
-        public override double GetDesiredSpace(LayoutContext element)
+        public override double GetDesiredSpace(LayoutContext element, double minimumSize)
         {
-            return element.Height.HasValue ? element.Height.Value : element.DockableCollection.DesiredSize.Height;
+            return Math.Max(element.Height.HasValue ? element.Height.Value : element.DockableCollection.DesiredSize.Height, minimumSize);
         }
 
-        protected override void GetFixedSpaceInternal(LayoutContext root, bool inVaryingGroup, ref double fixedSpace, ref int varyingGroupCount, List<LayoutContext> elementsToBePositioned)
+        protected override void GetFixedSpaceInternal(LayoutContext root, bool inVaryingGroup, ref double fixedSpace, ref int varyingGroupCount, double minimumSize, List<LayoutContext> elementsToBePositioned)
         {
             foreach (LayoutContext peer in root.Edges[System.Windows.Controls.Dock.Bottom].LogicalNeighbors)
             {
@@ -255,10 +255,10 @@ namespace Yawn
                     else
                     {
                         thisPeersSubtreeInVaryingGroup = false;
-                        thisPeersSubtreesFixedSpace += GetDesiredSpace(peer);
+                        thisPeersSubtreesFixedSpace += GetDesiredSpace(peer, minimumSize);
                     }
 
-                    GetFixedSpaceInternal(peer, thisPeersSubtreeInVaryingGroup, ref thisPeersSubtreesFixedSpace, ref thisPeersSubtreesVaryingGroupCount, elementsToBePositioned);
+                    GetFixedSpaceInternal(peer, thisPeersSubtreeInVaryingGroup, ref thisPeersSubtreesFixedSpace, ref thisPeersSubtreesVaryingGroupCount, minimumSize, elementsToBePositioned);
 
                     subtreesFixedSpace = Math.Max(subtreesFixedSpace, thisPeersSubtreesFixedSpace);
                     subtreesVaryingGroupCount = Math.Max(subtreesVaryingGroupCount, thisPeersSubtreesVaryingGroupCount);
@@ -281,7 +281,7 @@ namespace Yawn
             return null;
         }
 
-        public override double GetPeersMaxDesiredSpace(LayoutContext element, List<LayoutContext> elementsToBePositioned)
+        public override double GetPeersMaxDesiredSpace(LayoutContext element, double minimumSize, List<LayoutContext> elementsToBePositioned)
         {
             if (element.Height.HasValue)
             {
@@ -295,7 +295,7 @@ namespace Yawn
                 {
                     if (elementsToBePositioned.Contains(peer))
                     {
-                        maxDesiredSpace = Math.Max(maxDesiredSpace, GetDesiredSpace(peer));
+                        maxDesiredSpace = Math.Max(maxDesiredSpace, GetDesiredSpace(peer, minimumSize));
                     }
                 }
 

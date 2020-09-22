@@ -331,7 +331,7 @@ namespace Yawn
 
                     for (LinkedListNode<LayoutContext> node = _interiorLogicalEdge.First; node != null; node = node.Next)
                     {
-                        if (layoutContext.IsLogicalPreceeding(_interiorLogicalEdge, node.Value, EdgesDockPosition))
+                        if (layoutContext.IsLogicalPreceeding(node.Value, EdgesDockPosition))
                         {
                             _interiorLogicalEdge.AddBefore(node, layoutContext);
                             goto nextNode;

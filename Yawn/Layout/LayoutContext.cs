@@ -721,17 +721,26 @@ namespace Yawn
             }
         }
 
-        internal bool IsLogicalPreceeding(LinkedList<LayoutContext> interiorLogicalEdge, LayoutContext referenceContext, System.Windows.Controls.Dock dockEdgesPosition)
+        /// <summary>
+        /// Tests if the layout context (this) logically preceeds (is either above or to the left of) the referenceContext
+        /// </summary>
+        /// <param name="referenceContext">identifies the root of the subtree to be searched</param>
+        /// <param name="dockEdgesPosition">identifies the edge being tested</param>
+        /// <returns></returns>
+        internal bool IsLogicalPreceeding(LayoutContext referenceContext, System.Windows.Controls.Dock dockEdgesPosition)
         {
-            // I think this is bogus
-            do
+            if (referenceContext.Edges[MinimumOrthogonalEdge[dockEdgesPosition]].LogicalNeighbors.Contains(this))
             {
-                if (referenceContext.Edges[MinimumOrthogonalEdge[dockEdgesPosition]].LogicalNeighbors.Contains(this))
+                return true;
+            }
+
+            foreach (LayoutContext neighbor in referenceContext.Edges[MinimumOrthogonalEdge[dockEdgesPosition]].LogicalNeighbors)
+            {
+                if (IsLogicalPreceeding(neighbor, dockEdgesPosition))
                 {
                     return true;
                 }
-                referenceContext = referenceContext.Edges[MinimumOrthogonalEdge[dockEdgesPosition]].LogicalNeighbors.LastOrDefault();
-            } while (referenceContext != null);
+            }
 
             return false;
         }

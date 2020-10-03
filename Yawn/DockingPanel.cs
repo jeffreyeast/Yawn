@@ -342,7 +342,7 @@ namespace Yawn
                             }
                         }
 #endif
-                        //  And finish laying out the DockableCollection
+                        //  Finish laying out the DockableCollection
 
                         layoutContext.DockableCollection.Arrange(layoutContext.DockableCollection.IsCollapsed ? new Rect() : layoutContext.Bounds);
                         if (layoutContext.DockableCollection.State == DockableCollection.States.Loaded)

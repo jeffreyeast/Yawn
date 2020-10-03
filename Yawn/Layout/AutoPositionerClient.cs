@@ -31,11 +31,11 @@ namespace Yawn
             //  Try to figure the amount of space available to all the remaining varying elements *at our level*
 
             double fixedSpace = 0;
-            int varyingGroupCount = 0;
+            int varyingGroupCount = 1;
 
             GetFixedSpaceInternal(varyingElements.Last(), false, ref fixedSpace, ref varyingGroupCount, minSpacePerElement, elementsToBePositioned);
 
-            double varyingSpace = (availableSpace - fixedSpace) * ((double)varyingElements.Count) / (double)(varyingElements.Count + varyingGroupCount);
+            double varyingSpace = (availableSpace - fixedSpace) * ((double)varyingElements.Count) / (double)(varyingElements.Count + varyingGroupCount - 1);
             return Math.Max(varyingSpace, varyingGroupCount * minSpacePerElement);
         }
 
@@ -57,7 +57,8 @@ namespace Yawn
     {
         public override double GetDesiredSpace(LayoutContext element, double minimumSize)
         {
-            return Math.Max(element.Width.HasValue ? element.Width.Value : element.DockableCollection.DesiredSize.Width, minimumSize);
+            double desiredSpace = Math.Max(element.Width.HasValue ? element.Width.Value : element.DockableCollection.DesiredSize.Width, minimumSize);
+            return desiredSpace;
         }
 
         public override LayoutContext GetNextDescendant(Silo silo, LayoutContext element, List<LayoutContext> elementsToBePositioned)
@@ -117,24 +118,17 @@ namespace Yawn
 
         public override double GetPeersMaxDesiredSpace(LayoutContext element, double minimumSize, List<LayoutContext> elementsToBePositioned)
         {
-            if (element.Width.HasValue)
-            {
-                return element.Width.Value;
-            }
-            else
-            {
-                double maxDesiredSpace = 0;
+            double maxDesiredSpace = 0;
 
-                foreach (LayoutContext peer in element.Edges[System.Windows.Controls.Dock.Left].InteriorLogicalEdge)
+            foreach (LayoutContext peer in element.Edges[System.Windows.Controls.Dock.Left].InteriorLogicalEdge)
+            {
+                if (elementsToBePositioned.Contains(peer) && element.Edges[System.Windows.Controls.Dock.Right].InteriorLogicalEdge.Contains(peer))
                 {
-                    if (elementsToBePositioned.Contains(peer))
-                    {
-                        maxDesiredSpace = Math.Max(maxDesiredSpace, GetDesiredSpace(peer, minimumSize));
-                    }
+                    maxDesiredSpace = Math.Max(maxDesiredSpace, GetDesiredSpace(peer, minimumSize));
                 }
-
-                return maxDesiredSpace;
             }
+
+            return maxDesiredSpace;
         }
 
         public override double GetPreceedingCoordinate(LayoutContext element)
@@ -184,7 +178,7 @@ namespace Yawn
         public override bool IsStretchable(LayoutContext element)
         {
             return double.IsNaN(element.DockableCollection.Width) &&
-                element.DockableCollection is DockableCollection dockableCollection ? dockableCollection.HorizontalContentAlignment == System.Windows.HorizontalAlignment.Stretch : false;
+                element.DockableCollection.HorizontalContentAlignment == System.Windows.HorizontalAlignment.Stretch;
         }
 
         protected override double MinBoundary(LayoutContext element, double edgeBoundary)
@@ -223,7 +217,8 @@ namespace Yawn
     {
         public override double GetDesiredSpace(LayoutContext element, double minimumSize)
         {
-            return Math.Max(element.Height.HasValue ? element.Height.Value : element.DockableCollection.DesiredSize.Height, minimumSize);
+            double desiredSize = Math.Max(element.Height.HasValue ? element.Height.Value : element.DockableCollection.DesiredSize.Height, minimumSize);
+            return desiredSize;
         }
 
         protected override void GetFixedSpaceInternal(LayoutContext root, bool inVaryingGroup, ref double fixedSpace, ref int varyingGroupCount, double minimumSize, List<LayoutContext> elementsToBePositioned)
@@ -283,24 +278,17 @@ namespace Yawn
 
         public override double GetPeersMaxDesiredSpace(LayoutContext element, double minimumSize, List<LayoutContext> elementsToBePositioned)
         {
-            if (element.Height.HasValue)
-            {
-                return element.Height.Value;
-            }
-            else
-            {
-                double maxDesiredSpace = 0;
+            double maxDesiredSpace = 0;
 
-                foreach (LayoutContext peer in element.Edges[System.Windows.Controls.Dock.Top].InteriorLogicalEdge)
+            foreach (LayoutContext peer in element.Edges[System.Windows.Controls.Dock.Top].InteriorLogicalEdge)
+            {
+                if (elementsToBePositioned.Contains(peer) && element.Edges[System.Windows.Controls.Dock.Bottom].InteriorLogicalEdge.Contains(peer))
                 {
-                    if (elementsToBePositioned.Contains(peer))
-                    {
-                        maxDesiredSpace = Math.Max(maxDesiredSpace, GetDesiredSpace(peer, minimumSize));
-                    }
+                    maxDesiredSpace = Math.Max(maxDesiredSpace, GetDesiredSpace(peer, minimumSize));
                 }
-
-                return maxDesiredSpace;
             }
+
+            return maxDesiredSpace;
         }
 
         public override double GetPreceedingCoordinate(LayoutContext element)
@@ -350,7 +338,7 @@ namespace Yawn
         public override bool IsStretchable(LayoutContext element)
         {
             return double.IsNaN(element.DockableCollection.Height) &&
-                element.DockableCollection is DockableCollection dockableCollection ? dockableCollection.VerticalContentAlignment == System.Windows.VerticalAlignment.Stretch : false;
+                element.DockableCollection.VerticalContentAlignment == System.Windows.VerticalAlignment.Stretch;
         }
 
         protected override double MinBoundary(LayoutContext element, double edgeBoundary)

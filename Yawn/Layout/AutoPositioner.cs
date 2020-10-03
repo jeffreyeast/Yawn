@@ -86,15 +86,15 @@ namespace Yawn
                         continue;
 
                     case States.FirstFixedElement:
-                        double fixedSize = client.GetPeersMaxDesiredSpace(currentElement, minimumSize, elementsToBePositioned);
+                        double desiredSpace = client.GetPeersMaxDesiredSpace(currentElement, minimumSize, elementsToBePositioned);
                         elementsToBePositioned.Remove(currentElement);
                         int remainingDepth = client.GetRemainingDepth(silo, currentElement, elementsToBePositioned);
                         availableSpace = client.GetAvailableSpace(silo, currentElement, runningCoordinate, totalAvailableSpace, elementsToBePositioned);
-                        if (availableSpace - fixedSize < remainingDepth * minimumSize)
+                        if (availableSpace - desiredSpace < remainingDepth * minimumSize)
                         {
-                            fixedSize = Math.Max(0, Math.Max(availableSpace - remainingDepth * minimumSize, availableSpace / ( 1 + remainingDepth)));
+                            desiredSpace = Math.Max(0, Math.Max(availableSpace - remainingDepth * minimumSize, availableSpace / ( 1 + remainingDepth)));
                         }
-                        client.SetPosition(silo, currentElement, runningCoordinate, fixedSize, elementsToBePositioned);
+                        client.SetPosition(silo, currentElement, runningCoordinate, desiredSpace, elementsToBePositioned);
 
                         nextElement = client.GetNextDescendant(silo, currentElement, elementsToBePositioned);
 
@@ -108,7 +108,7 @@ namespace Yawn
                         }
                         else
                         {
-                            runningCoordinate += fixedSize;
+                            runningCoordinate += desiredSpace;
                             currentElement = nextElement;
                             currentState = States.TestingElementType;
                         }

@@ -157,7 +157,7 @@ namespace Yawn
         }
         Dock _rootDock;
 
-        internal DockingPanel DockingPanel { get; private set; }
+        internal DockingPanel DockingPanel { get; set; }
         DockingChoice DockingChoice;
         internal Dictionary<System.Windows.Controls.Dock, DockTabCollection> DockTabCollections;
         internal DockWindow DockWindow { get; set; }
@@ -272,7 +272,6 @@ namespace Yawn
         private void Dock_Loaded(object sender, RoutedEventArgs e)
         {
             ApplyTemplate();
-            DockingPanel = Utility.FindItemsPanel(this) as DockingPanel;
             DockingChoice = Template.FindName("DockingChoice", this) as DockingChoice;
             DockTabCollections[System.Windows.Controls.Dock.Bottom] = Template.FindName("BottomDockTabs", this) as DockTabCollection;
             DockTabCollections[System.Windows.Controls.Dock.Left] = Template.FindName("LeftDockTabs", this) as DockTabCollection;
@@ -293,8 +292,6 @@ namespace Yawn
                     RootDock = anyDock.RootDock;
                 }
             }
-
-            DockingPanel.InvalidatePositioning(LayoutContext.PositionClasses.EveryCollection | LayoutContext.PositionClasses.All);
         }
 
         internal void DropCollection(DockableCollection referenceDockableCollection, DockableCollection droppedCollection, DockingChoicePanel targetDockingChoicePanel)
@@ -477,11 +474,6 @@ namespace Yawn
             DockingPanel?.OnAttachedPropertyChanged(sender, e);
         }
 
-        internal void ReinsertDockableCollection(DockableCollection dockableCollection, System.Windows.Controls.Dock defaultPosition)
-        {
-            DockingPanel.ReinsertDockableCollection(dockableCollection, defaultPosition);
-        }
-
         private void RemoveDockableCollection(DockableCollection dockableCollection)
         {
             dockableCollection.Dock = null;
@@ -506,8 +498,11 @@ namespace Yawn
 
         internal void SplitterMoved(DockSplitter splitter, double delta)
         {
-            DockingPanel.GetLayoutContext(splitter.DockableCollection).SplitterMoved(splitter.DockPosition, delta);
-            DockingPanel.InvalidateMeasure();
+            using (new Activity(DockingPanel))
+            {
+                DockingPanel.GetLayoutContext(splitter.DockableCollection).SplitterMoved(splitter.DockPosition, delta);
+                DockingPanel.InvalidateArrange();
+            }
         }
 
         internal void SplitterDragStart(DockSplitter splitter)

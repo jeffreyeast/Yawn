@@ -24,8 +24,8 @@ namespace Yawn
             Internal = 1,
             Horizontal = 2 | Internal,
             Vertical = 4 | Internal,
-            Collapse = 8,
-            Resize = 16,
+            Collapse = 8 | Internal,
+            Resize = 16 | Internal,
             EveryCollection = 32,
 
             All = Horizontal | Vertical,
@@ -62,45 +62,15 @@ namespace Yawn
         double? _top;
         double? _topSave;
 
-        public double? Height
-        {
-            get => _height;
-            set
-            {
-                if (_height != value)
-                {
-                    Debug.Assert(value == null || value >= 0);
-                    _height = value;
-                }
-            }
-        }
+        public Dimensions Size { get; private set; }
 
-        double? _height;
-        double? _heightSave;
+        public double? Bottom => Top.HasValue && Size.Height.HasInternalValue ? Top.Value + Size.Height.InternalValue : (double?)null;
 
-        public double? Width
-        {
-            get => _width;
-            set
-            {
-                if (_width != value)
-                {
-                    Debug.Assert(value == null || value >= 0);
-                    _width = value;
-                }
-            }
-        }
-        double? _width;
-        double? _widthSave;
+        public double? Right => Left.HasValue && Size.Width.HasInternalValue ? Left.Value + Size.Width.InternalValue : (double?)null;
 
-        public double? Bottom => Top.HasValue && Height.HasValue ? Top.Value + Height.Value : (double?)null;
+        public bool IsFullyPositioned => (Left.HasValue && Top.HasValue && Size.Height.HasInternalValue && Size.Height.InternalValue >= DockingPanel.MinimumChildSize.Height && Size.Width.HasInternalValue && Size.Width.InternalValue >= DockingPanel.MinimumChildSize.Width);
 
-        public double? Right => Left.HasValue && Width.HasValue ? Left.Value + Width.Value : (double?)null;
-
-        public bool IsFullyPositioned => (Left.HasValue && Top.HasValue && Height.HasValue && Height.Value >= DockingPanel.MinimumChildSize.Height && Width.HasValue && Width.Value >= DockingPanel.MinimumChildSize.Width);
-
-        public Rect Bounds => new Rect(Left.Value, Top.Value, Width.Value, Height.Value);
-        public Size Size => new Size(Width.Value, Height.Value);
+        public Rect Bounds => new Rect(Left.Value, Top.Value, Size.Width.InternalValue, Size.Height.InternalValue);
 
         internal DockingPanel DockingPanel { get; private set; }
         public Dictionary<System.Windows.Controls.Dock, DockableCollectionEdge> Edges { get; private set; }
@@ -144,17 +114,17 @@ namespace Yawn
         };
         internal static readonly Dictionary<System.Windows.Controls.Dock, PositionClasses> DockPositionToPositionClass = new Dictionary<System.Windows.Controls.Dock, PositionClasses>()
         {
-            {System.Windows.Controls.Dock.Bottom, PositionClasses.Vertical },
-            {System.Windows.Controls.Dock.Left, PositionClasses.Horizontal },
-            {System.Windows.Controls.Dock.Right, PositionClasses.Horizontal },
-            {System.Windows.Controls.Dock.Top, PositionClasses.Vertical },
+            {System.Windows.Controls.Dock.Bottom, PositionClasses.Vertical | PositionClasses.Resize },
+            {System.Windows.Controls.Dock.Left, PositionClasses.Horizontal | PositionClasses.Resize },
+            {System.Windows.Controls.Dock.Right, PositionClasses.Horizontal | PositionClasses.Resize },
+            {System.Windows.Controls.Dock.Top, PositionClasses.Vertical | PositionClasses.Resize },
         };
 
         internal LayoutContext(DockingPanel dockingPanel, DockableCollection dockableCollection)
         {
             DockingPanel = dockingPanel;
             DockableCollection = dockableCollection;
-            ResetPosition();
+            Size = new Dimensions(DockableCollection);
             Edges = new Dictionary<System.Windows.Controls.Dock, DockableCollectionEdge>(4);
             foreach (System.Windows.Controls.Dock edge in Enum.GetValues(typeof(System.Windows.Controls.Dock)))
             {
@@ -249,10 +219,10 @@ namespace Yawn
                 switch (dockPosition)
                 {
                     case System.Windows.Controls.Dock.Bottom:
-                        peer.DockableCollection.Height = double.NaN;
+                        peer.Size.Height.ClearSplitter();
                         break;
                     case System.Windows.Controls.Dock.Right:
-                        peer.DockableCollection.Width = double.NaN;
+                        peer.Size.Width.ClearSplitter();
                         break;
                     default:
                         throw new InvalidOperationException();
@@ -264,10 +234,10 @@ namespace Yawn
                 switch (dockPosition)
                 {
                     case System.Windows.Controls.Dock.Bottom:
-                        peer.DockableCollection.Height = double.NaN;
+                        peer.Size.Height.ClearSplitter();
                         break;
                     case System.Windows.Controls.Dock.Right:
-                        peer.DockableCollection.Width = double.NaN;
+                        peer.Size.Width.ClearSplitter();
                         break;
                     default:
                         throw new InvalidOperationException();
@@ -280,12 +250,14 @@ namespace Yawn
         internal void Dump()
         {
             Debug.Print("    " + DockableCollectionId + " " + ToString() +
-                ": L=" + (Left.HasValue ? Left.Value.ToString("F0") : "<null>") +
-                ", T=" + (Top.HasValue ? Top.Value.ToString("F0") : "<null>") +
-                ", R=" + (Right.HasValue ? Right.Value.ToString("F0") : "<null>") +
-                ", B=" + (Bottom.HasValue ? Bottom.Value.ToString("F0") : "<null>") +
-                ", W=" + (Width.HasValue ? Width.Value.ToString("F0") : "<null>") +
-                ", H=" + (Height.HasValue ? Height.Value.ToString("F0") : "<null>"));
+                ": DCS=(" + DockableCollection.Width.ToString("F0") + "," + DockableCollection.Height.ToString("F0") + ")" +
+                ", DS=(" + DockableCollection.DesiredSize.Width.ToString("F0") + "," + DockableCollection.DesiredSize.Height.ToString("F0") + ")" +
+                ", L=" + (Left.HasValue ? Left.Value.ToString("F0") : "<>") +
+                ", T=" + (Top.HasValue ? Top.Value.ToString("F0") : "<>") +
+                ", R=" + (Right.HasValue ? Right.Value.ToString("F0") : "<>") +
+                ", B=" + (Bottom.HasValue ? Bottom.Value.ToString("F0") : "<>") +
+                ", W=" + Size.Width.ToString() +
+                ", H=" + Size.Height.ToString());
         }
 
         internal void DumpAll()
@@ -392,14 +364,14 @@ namespace Yawn
                 {
                     if (!layoutContext.DockableCollection.IsCollapsed)
                     {
-                        layoutContext.DockableCollection.Height = layoutContext.DockableCollection.ActualHeight + delta;
+                        layoutContext.Size.Height.SetSplitter(layoutContext.DockableCollection.ActualHeight + delta);
                     }
                 }
                 foreach (LayoutContext layoutContext in bottomside)
                 {
                     if (!layoutContext.DockableCollection.IsCollapsed)
                     {
-                        layoutContext.DockableCollection.Height = layoutContext.DockableCollection.ActualHeight - delta;
+                        layoutContext.Size.Height.SetSplitter(layoutContext.DockableCollection.ActualHeight - delta);
                     }
                 }
             }
@@ -610,20 +582,15 @@ namespace Yawn
             Debug.Print(result);
 #endif
 
-            ResetPosition(positionClass);
             if ((positionClass & PositionClasses.Horizontal) == PositionClasses.Horizontal &&
-                ((positionClass & PositionClasses.Resize) != PositionClasses.Resize ||
-                 ((positionClass & PositionClasses.Resize) == PositionClasses.Resize && DockableCollection.HorizontalContentAlignment == HorizontalAlignment.Stretch)))
+                 (positionClass & PositionClasses.Resize) == PositionClasses.Resize && DockableCollection.HorizontalContentAlignment == HorizontalAlignment.Stretch)
             {
-                _width = null;
-                DockableCollection.Width = double.NaN;
+                Size.Width.Reset();
             }
             if ((positionClass & PositionClasses.Vertical) == PositionClasses.Vertical &&
-                ((positionClass & PositionClasses.Resize) != PositionClasses.Resize ||
-                 ((positionClass & PositionClasses.Resize) == PositionClasses.Resize && DockableCollection.VerticalContentAlignment == VerticalAlignment.Stretch)))
+                 (positionClass & PositionClasses.Resize) == PositionClasses.Resize && DockableCollection.VerticalContentAlignment == VerticalAlignment.Stretch)
             {
-                _height = null;
-                DockableCollection.Height = double.NaN;
+                Size.Height.Reset();
             }
             if ((positionClass & PositionClasses.Internal) == PositionClasses.Internal)
             {
@@ -842,48 +809,20 @@ namespace Yawn
             Edges[System.Windows.Controls.Dock.Top].PhysicalNeighbors.Clear();
         }
 
-        internal void ResetPosition(PositionClasses positionClass = PositionClasses.All)
+        internal void PreArrange()
         {
-            if ((positionClass & PositionClasses.Horizontal) == PositionClasses.Horizontal)
-            {
-                _left = null;
-                if (!double.IsNaN(DockableCollection.Width) && !double.IsInfinity(DockableCollection.Width))
-                {
-                    _width = DockableCollection.Width;
-                }
-                if (_width < DockingPanel.MinimumChildSize.Width)
-                {
-                    _width = null;
-                }
-            }
-            if ((positionClass & PositionClasses.Vertical) == PositionClasses.Vertical)
-            {
-                _top = null;
-                if (!double.IsNaN(DockableCollection.Height) && !double.IsInfinity(DockableCollection.Height))
-                {
-                    _height = DockableCollection.Height;
-                }
-                if (_height < DockingPanel.MinimumChildSize.Height)
-                {
-                    _height = null;
-                }
-            }
+            _leftSave = _left;
+            _left = null;
+            _topSave = _top;
+            _top = null;
+            Size.PreArrange();
         }
 
         internal void Restore()
         {
             _left = _leftSave;
             _top = _topSave;
-            _width = _widthSave;
-            _height = _heightSave;
-        }
-
-        internal void Save()
-        {
-            _leftSave = _left;
-            _topSave = _top;
-            _widthSave = _width;
-            _heightSave = _height;
+            Size.Restore();
         }
 
         internal void SplitterMoved(System.Windows.Controls.Dock dockPosition, double delta)
@@ -1027,7 +966,7 @@ namespace Yawn
 
         internal void Validate(Size layoutSize)
         {
-            if (!(_left.HasValue && _top.HasValue && _width.HasValue && _height.HasValue)) throw new InvalidOperationException(ToString() + " not fully configured");
+            if (!(_left.HasValue && _top.HasValue && Size.Width.HasInternalValue && Size.Height.HasInternalValue)) throw new InvalidOperationException(ToString() + " not fully configured");
             if (!(_left.Value == 0 || Edges[System.Windows.Controls.Dock.Left].PhysicalNeighbors.Count > 0)) throw new InvalidOperationException(ToString() + " gap to left");
             if (!(_top.Value == 0 || Edges[System.Windows.Controls.Dock.Top].PhysicalNeighbors.Count > 0)) throw new InvalidOperationException(ToString() + " gap above");
             if (!(Math.Abs(Right.Value - layoutSize.Width) < 0.1 || Edges[System.Windows.Controls.Dock.Right].PhysicalNeighbors.Count > 0)) throw new InvalidOperationException(ToString() + " gap to right");
@@ -1076,14 +1015,14 @@ namespace Yawn
                 {
                     if (!layoutContext.DockableCollection.IsCollapsed)
                     {
-                        layoutContext.DockableCollection.Width = layoutContext.DockableCollection.ActualWidth + delta;
+                        layoutContext.Size.Width.SetSplitter(layoutContext.DockableCollection.ActualWidth + delta);
                     }
                 }
                 foreach (LayoutContext layoutContext in rightside)
                 {
                     if (!layoutContext.DockableCollection.IsCollapsed)
                     {
-                        layoutContext.DockableCollection.Width = layoutContext.DockableCollection.ActualWidth - delta;
+                        layoutContext.Size.Width.SetSplitter(layoutContext.DockableCollection.ActualWidth - delta);
                     }
                 }
             }

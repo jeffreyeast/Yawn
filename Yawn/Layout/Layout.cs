@@ -208,6 +208,10 @@ namespace Yawn
             public double? Height;
             public double? Width;
             [XmlAttribute]
+            public bool IsHeightSplitterActive;
+            [XmlAttribute]
+            public bool IsWidthSplitterActive;
+            [XmlAttribute]
             public HorizontalAlignment HorizontalContentAlignment;
             [XmlAttribute]
             public VerticalAlignment VerticalContentAlignment;
@@ -257,10 +261,12 @@ namespace Yawn
                     LayoutContext layoutContext = DockingPanel.GetLayoutContext(dockableCollection);
                     Left = layoutContext.Left.Value;
                     Top = layoutContext.Top.Value;
-                    LayoutHeight = layoutContext.Height.Value;
-                    LayoutWidth = layoutContext.Width.Value;
-                    Height = layoutContext.DockableCollection.Height;
-                    Width = layoutContext.DockableCollection.Width;
+                    LayoutHeight = layoutContext.Size.Height.HasInternalValue ? layoutContext.Size.Height.InternalValue : (double?)null;
+                    LayoutWidth = layoutContext.Size.Width.HasInternalValue ? layoutContext.Size.Width.InternalValue : (double?)null;
+                    Height = layoutContext.Size.Height.UserValue;
+                    Width = layoutContext.Size.Width.UserValue;
+                    IsHeightSplitterActive = layoutContext.Size.Height.IsSplitterActive;
+                    IsWidthSplitterActive = layoutContext.Size.Width.IsSplitterActive;
                 }
 
                 BottomPeers = new List<int>();
@@ -316,10 +322,24 @@ namespace Yawn
                     LayoutContext layoutContext = DockingPanel.GetLayoutContext(newCollection);
                     layoutContext.Left = Left;
                     layoutContext.Top = Top;
-                    layoutContext.Height = LayoutHeight;
-                    layoutContext.Width = LayoutWidth;
-                    layoutContext.DockableCollection.Height = Height.Value;
-                    layoutContext.DockableCollection.Width = Width.Value;
+                    if (IsHeightSplitterActive)
+                    {
+                        layoutContext.Size.Height.SetSplitter(LayoutHeight.Value);
+                    }
+                    else
+                    {
+                        layoutContext.Size.Height.SetInternalValue(LayoutHeight);
+                    }
+                    if (IsHeightSplitterActive)
+                    {
+                        layoutContext.Size.Width.SetSplitter(LayoutWidth.Value);
+                    }
+                    else
+                    {
+                        layoutContext.Size.Width.SetInternalValue(LayoutWidth);
+                    }
+                    layoutContext.Size.Height.SetUserValue(Height.Value);
+                    layoutContext.Size.Width.SetUserValue(Width.Value);
                 }
 
                 return newCollection;

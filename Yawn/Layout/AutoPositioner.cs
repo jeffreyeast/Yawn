@@ -17,7 +17,7 @@ namespace Yawn
             double GetAvailableSpace(Silo silo, LayoutContext element, double baseCoordinate, double totalAvailableSpace, List<LayoutContext> elementsToBePositioned);
             LayoutContext GetNextDescendant(Silo silo, LayoutContext element, List<LayoutContext> elementsToBePositioned);
             double GetDesiredSpace(LayoutContext element, double minimumSize);
-            double GetPeersMaxDesiredSpace(LayoutContext element, double minimumSize, List<LayoutContext> elementsToBePositioned);
+            double GetPeersMaxDesiredSpace(LayoutContext element, double minimumSize, IEnumerable<LayoutContext> elementsToBePositioned);
             double GetPreceedingCoordinate(LayoutContext element);
             int GetRemainingDepth(Silo silo, LayoutContext element, List<LayoutContext> elementsToBePositioned);
             double GetVaryingSpace(Silo silo, double availableSpace, double minSpacePerElement, List<LayoutContext> varyingElements, List<LayoutContext> elementsToBePositioned);
@@ -56,11 +56,7 @@ namespace Yawn
                     case States.EndVaryingRun:
                         availableSpace = client.GetAvailableSpace(silo, varyingRun.First(), runningCoordinate, totalAvailableSpace, elementsToBePositioned);
                         double varyingSize = client.GetVaryingSpace(silo, availableSpace, minimumSize, varyingRun, elementsToBePositioned);
-                        int varyingCount = 0;
-                        foreach (LayoutContext element in varyingRun)
-                        {
-                            varyingCount++;
-                        }
+                        int varyingCount = varyingRun.Count;
                         foreach (LayoutContext element in varyingRun)
                         {
                             double elementSize = varyingSize / varyingRun.Count;
@@ -86,7 +82,7 @@ namespace Yawn
                         continue;
 
                     case States.FirstFixedElement:
-                        double desiredSpace = client.GetPeersMaxDesiredSpace(currentElement, minimumSize, elementsToBePositioned);
+                        double desiredSpace = client.GetPeersMaxDesiredSpace(currentElement, minimumSize, silo);
                         elementsToBePositioned.Remove(currentElement);
                         int remainingDepth = client.GetRemainingDepth(silo, currentElement, elementsToBePositioned);
                         availableSpace = client.GetAvailableSpace(silo, currentElement, runningCoordinate, totalAvailableSpace, elementsToBePositioned);

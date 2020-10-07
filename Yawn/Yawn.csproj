@@ -112,6 +112,8 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Activity.cs" />
+    <Compile Include="Dimension.cs" />
     <Compile Include="DockableCollectionEdge.cs" />
     <Compile Include="Layout\AutoPositioner.cs" />
     <Compile Include="Layout\AutoPositionerClient.cs" />

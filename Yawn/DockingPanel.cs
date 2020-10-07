@@ -110,6 +110,8 @@ namespace Yawn
 
 
         internal List<LayoutContext> LayoutContexts;
+        internal volatile int ActivityCount;
+        internal bool IsIdle => ActivityCount == 0;
         private HorizontalClient HorizontalClientInstance;
         private VerticalClient VerticalClientInstance;
         internal static readonly Size MinimumChildSize = new Size(75, 75);
@@ -190,6 +192,9 @@ namespace Yawn
             LayoutContexts = new List<LayoutContext>();
             HorizontalClientInstance = new HorizontalClient();
             VerticalClientInstance = new VerticalClient();
+            ActivityCount = 0;
+            Initialized += DockingPanel_Initialized;
+            Loaded += DockingPanel_Loaded;
         }
 
         private void AddChild(DockableCollection visual)
@@ -202,37 +207,55 @@ namespace Yawn
 
         private void AdjustPostHorizontalInsertion(LayoutContext newElement, LayoutContext reference)
         {
-            if (reference.Width.HasValue)
+            if (reference.Size.Width.HasInternalValue)
             {
-                double availableWidth = reference.Width.Value;
-                if (!newElement.DockableCollection.IsMeasureValid)
+                using (new Activity(this))
                 {
-                    newElement.DockableCollection.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    double availableWidth = reference.Size.Width.InternalValue;
+                    if (!newElement.DockableCollection.IsMeasureValid)
+                    {
+                        newElement.DockableCollection.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    }
+                    newElement.Top = reference.Top;
+                    newElement.Size.Width.SetSplitter(Math.Max(MinimumChildSize.Width,
+                        newElement.DockableCollection.DesiredSize.Width < MinimumChildSize.Width ? availableWidth / 2 : Math.Min(availableWidth / 2, newElement.DockableCollection.DesiredSize.Width)));
+                    reference.Size.Width.SetSplitter(reference.Size.Width.InternalValue - newElement.Size.Width.InternalValue);
+                    if (reference.Size.Height.IsSplitterActive)
+                    {
+                        newElement.Size.Height.SetSplitter(reference.Size.Height.InternalValue);
+                    }
+                    else
+                    {
+                        newElement.Size.Height.SetInternalValue(reference.Size.Height.InternalValue);
+                    }
                 }
-                newElement.Top = reference.Top;
-                newElement.Width = Math.Max(MinimumChildSize.Width, 
-                    newElement.DockableCollection.DesiredSize.Width < MinimumChildSize.Width ? availableWidth / 2 : Math.Min(availableWidth / 2, newElement.DockableCollection.DesiredSize.Width));
-                reference.Width = reference.Width.Value - newElement.Width.Value;
-                newElement.Height = reference.Height;
-                reference.DockableCollection.InvalidateMeasure();
             }
         }
 
         private void AdjustPostVerticalInsertion(LayoutContext newElement, LayoutContext reference)
         {
-            if (reference.Height.HasValue)
+            if (reference.Size.Height.HasInternalValue)
             {
-                double availableHeight = reference.Height.Value;
-                if (!newElement.DockableCollection.IsMeasureValid)
+                using (new Activity(this))
                 {
-                    newElement.DockableCollection.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    double availableHeight = reference.Size.Height.InternalValue;
+                    if (!newElement.DockableCollection.IsMeasureValid)
+                    {
+                        newElement.DockableCollection.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    }
+                    newElement.Left = reference.Left;
+                    newElement.Size.Height.SetSplitter(Math.Max(MinimumChildSize.Height,
+                        newElement.DockableCollection.DesiredSize.Height < MinimumChildSize.Height ? availableHeight / 2 : Math.Min(availableHeight / 2, newElement.DockableCollection.DesiredSize.Height)));
+                    reference.Size.Height.SetSplitter(reference.Size.Height.InternalValue - newElement.Size.Height.InternalValue);
+                    if (newElement.Size.Height.IsSplitterActive)
+                    {
+                        newElement.Size.Width.SetSplitter(reference.Size.Width.InternalValue);
+                    }
+                    else
+                    {
+                        newElement.Size.Width.SetInternalValue(reference.Size.Width.InternalValue);
+                    }
                 }
-                newElement.Left = reference.Left;
-                newElement.Height = Math.Max(MinimumChildSize.Height, 
-                    newElement.DockableCollection.DesiredSize.Height < MinimumChildSize.Height ? availableHeight / 2 : Math.Min(availableHeight / 2, newElement.DockableCollection.DesiredSize.Height));
-                reference.Height = reference.Height.Value - newElement.Height.Value;
-                newElement.Width = reference.Width;
-                reference.DockableCollection.InvalidateMeasure();
             }
         }
 
@@ -271,8 +294,6 @@ namespace Yawn
 #endif
             if (LayoutContexts.Count > 0)
             {
-                retry:
-
                 foreach (var child in LayoutContexts)
                 {
                     if (LayoutContexts.Count > 1 &&
@@ -286,9 +307,10 @@ namespace Yawn
                         InsertByDockPosition(child, System.Windows.Controls.Dock.Bottom);
                     }
 
-                    child.Save();
-                    child.ResetPosition();
+                    child.PreArrange();
                 }
+
+            retry:
 
                 ArrangeByConvolutedLogic(finalSize);
 
@@ -316,32 +338,8 @@ namespace Yawn
                 {
                     foreach (var layoutContext in LayoutContexts)
                     {
-#if true
-                        //  If the DockableCollection's width or height are fixed below our minimum value, release them
+                        layoutContext.Size.PostArrange();
 
-                        if (!double.IsNaN(layoutContext.DockableCollection.Height))
-                        {
-                            if (layoutContext.Height.Value >= DockingPanel.MinimumChildSize.Height)
-                            {
-                                layoutContext.DockableCollection.Height = layoutContext.Height.Value;
-                            }
-                            else
-                            {
-                                layoutContext.ClearSplitterContext(System.Windows.Controls.Dock.Bottom);
-                            }
-                        }
-                        if (!double.IsNaN(layoutContext.DockableCollection.Width))
-                        {
-                            if (layoutContext.Width.Value >= DockingPanel.MinimumChildSize.Width)
-                            {
-                                layoutContext.DockableCollection.Width = layoutContext.Width.Value;
-                            }
-                            else
-                            {
-                                layoutContext.ClearSplitterContext(System.Windows.Controls.Dock.Right);
-                            }
-                        }
-#endif
                         //  Finish laying out the DockableCollection
 
                         layoutContext.DockableCollection.Arrange(layoutContext.DockableCollection.IsCollapsed ? new Rect() : layoutContext.Bounds);
@@ -371,7 +369,10 @@ namespace Yawn
 
         protected override Size ArrangeOverride(Size finalSize)
         {
-            return ArrangeInternal(finalSize, true);
+            using (new Activity(this))
+            {
+                return ArrangeInternal(finalSize, true);
+            }
         }
 
         private Size BoundingSize(IEnumerable<LayoutContext> layoutContexts)
@@ -434,8 +435,24 @@ namespace Yawn
             return maxDepth;
         }
 
+        private void DockingPanel_Initialized(object sender, EventArgs e)
+        {
+            Dock dock = Utility.FindAncestorOfType<Dock>(this);
+            dock.DockingPanel = this;
+        }
+
+        private void DockingPanel_Loaded(object sender, RoutedEventArgs e)
+        {
+            // WPF invokes the layout process BEFORE the control is loaded, and before it's children are loaded. This results in incorrect
+            // DesiredSize measurements for the children.  So force a re-measure pass.
+
+            InvalidateMeasure();
+        }
+
         private void DockPositionPropertyChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
+            Debug.Assert(!IsIdle);
+
             if (e.OldValue != e.NewValue && sender is DockableCollection dockableCollection && InternalChildren.Contains(dockableCollection))
             {
                 LayoutContext layoutContext = GetLayoutContext(dockableCollection);
@@ -451,7 +468,6 @@ namespace Yawn
                     InsertByDockPosition(layoutContext);
                     layoutContext.InvalidatePositioning(LayoutContext.PositionClasses.All);
                     InvalidateArrange();
-                    InvalidateMeasure();
                 }
             }
         }
@@ -510,6 +526,8 @@ namespace Yawn
 
         private void InsertByDockPosition(LayoutContext layoutContext, System.Windows.Controls.Dock? defaultPosition = null)
         {
+            Debug.Assert(!IsIdle);
+
             if (LayoutContexts.Count > 1)
             {
                 //  See if the visual has a DockPosition property. If so, automatically
@@ -545,64 +563,67 @@ namespace Yawn
 
         internal void InsertByLocation(DockableCollection visual, Rect bounds, System.Windows.Controls.Dock defaultPosition)
         {
-            LayoutContext layoutContext = GetLayoutContext(visual);
-            LayoutContext reference = (LayoutContexts[0] == layoutContext ? LayoutContexts[1] : LayoutContexts[0]);
-
-            //  If the dock resized (smaller) and the bounds are outside the dock, position the visual at the right or bottom edge
-
-            if (bounds.Left >= ActualWidth)
+            using (new Activity(this))
             {
-                layoutContext.InsertRight(reference);
-            }
-            else if (bounds.Top >= ActualHeight)
-            {
-                layoutContext.InsertBottom(reference);
-            }
-            else
-            {
-                //  Find the visual where the new visual's midpoint was
+                LayoutContext layoutContext = GetLayoutContext(visual);
+                LayoutContext reference = (LayoutContexts[0] == layoutContext ? LayoutContexts[1] : LayoutContexts[0]);
 
-                double centerX = (bounds.Left + bounds.Right) / 2;
-                double centerY = (bounds.Top + bounds.Bottom) / 2;
-                LayoutContext midpointReference = FindMidPoint(centerX, centerY);
-                if (midpointReference == null)
+                //  If the dock resized (smaller) and the bounds are outside the dock, position the visual at the right or bottom edge
+
+                if (bounds.Left >= ActualWidth)
                 {
-                    //  The midpoint is outside the dock
-
-                    InsertByDockPosition(layoutContext, defaultPosition);
+                    layoutContext.InsertRight(reference);
+                }
+                else if (bounds.Top >= ActualHeight)
+                {
+                    layoutContext.InsertBottom(reference);
                 }
                 else
                 {
-                    //  Position the visual relative to this reference
+                    //  Find the visual where the new visual's midpoint was
 
-                    double referenceX = (midpointReference.Left.Value + midpointReference.Right.Value) / 2;
-                    double referenceY = (midpointReference.Top.Value + midpointReference.Bottom.Value) / 2;
-
-                    if (Math.Abs(centerX - referenceX) < MinimumChildSize.Width / 2)
+                    double centerX = (bounds.Left + bounds.Right) / 2;
+                    double centerY = (bounds.Top + bounds.Bottom) / 2;
+                    LayoutContext midpointReference = FindMidPoint(centerX, centerY);
+                    if (midpointReference == null)
                     {
-                        if (centerY < referenceY)
+                        //  The midpoint is outside the dock
+
+                        InsertByDockPosition(layoutContext, defaultPosition);
+                    }
+                    else
+                    {
+                        //  Position the visual relative to this reference
+
+                        double referenceX = (midpointReference.Left.Value + midpointReference.Right.Value) / 2;
+                        double referenceY = (midpointReference.Top.Value + midpointReference.Bottom.Value) / 2;
+
+                        if (Math.Abs(centerX - referenceX) < MinimumChildSize.Width / 2)
                         {
-                            midpointReference.InsertAbove(layoutContext);
+                            if (centerY < referenceY)
+                            {
+                                midpointReference.InsertAbove(layoutContext);
+                            }
+                            else
+                            {
+                                midpointReference.InsertBelow(layoutContext);
+                            }
+                        }
+                        else if (Math.Abs(centerY - referenceY) < MinimumChildSize.Height / 2)
+                        {
+                            if (centerX < referenceX)
+                            {
+                                midpointReference.InsertToLeftOf(layoutContext);
+                            }
+                            else
+                            {
+                                midpointReference.InsertToRightOf(layoutContext);
+                            }
                         }
                         else
                         {
                             midpointReference.InsertBelow(layoutContext);
                         }
-                    }
-                    else if (Math.Abs(centerY - referenceY) < MinimumChildSize.Height / 2)
-                    {
-                        if (centerX < referenceX)
-                        {
-                            midpointReference.InsertToLeftOf(layoutContext);
-                        }
-                        else
-                        {
-                            midpointReference.InsertToRightOf(layoutContext);
-                        }
-                    }
-                    else
-                    {
-                        midpointReference.InsertBelow(layoutContext);
                     }
                 }
             }
@@ -650,58 +671,63 @@ namespace Yawn
 
         internal void InvalidatePositioning(LayoutContext.PositionClasses invalidationClass)
         {
-            if ((invalidationClass & LayoutContext.PositionClasses.EveryCollection) == LayoutContext.PositionClasses.EveryCollection)
+            using (new Activity(this))
             {
-                foreach (LayoutContext layoutContext in LayoutContexts)
+                if ((invalidationClass & LayoutContext.PositionClasses.EveryCollection) == LayoutContext.PositionClasses.EveryCollection)
                 {
-                    layoutContext.InvalidatePositioning(invalidationClass);
+                    foreach (LayoutContext layoutContext in LayoutContexts)
+                    {
+                        layoutContext.InvalidatePositioning(invalidationClass);
+                    }
                 }
+                InvalidateArrange();
             }
-            InvalidateMeasure();
-            InvalidateArrange();
         }
 
         protected override Size MeasureOverride(Size availableSize)
         {
-            if (LayoutContexts.Count == 0 && InternalChildren.Count > 0)
+            using (new Activity(this))
             {
-                //  There's a goofy case where InternalChildren has been set, but OnVisualChildrenChanged hasn't been called,
-                //  and we get called. Then, to add insult to injury, they'll call ArrangeOverride.  Wow.
-
-                foreach (FrameworkElement fe in InternalChildren)
+                if (LayoutContexts.Count == 0 && InternalChildren.Count > 0)
                 {
-                    fe.Measure(availableSize);
-                }
-                return availableSize;
-            }
-            else
-            {
-                bool isFreshLayout = false;
+                    //  There's a goofy case where InternalChildren has been set, but OnVisualChildrenChanged hasn't been called,
+                    //  and we get called. Then, to add insult to injury, they'll call ArrangeOverride.  Wow.
 
-                foreach (LayoutContext layoutContext in LayoutContexts)
-                {
-                    if (layoutContext.IsFullyPositioned)
+                    foreach (FrameworkElement fe in InternalChildren)
                     {
-                        layoutContext.DockableCollection.Measure(layoutContext.Size);
+                        fe.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                     }
-                    else
-                    {
-                        isFreshLayout = true;
-                        layoutContext.ResetPosition();
-                        layoutContext.DockableCollection.Measure(availableSize);
-                    }
+                    return availableSize;
                 }
-
-                //  If everything has already been laid out, we're done. Otherwise, we need to do a preliminary arrangement and then remeasure
-
-                if (isFreshLayout)
+                else
                 {
-                    ArrangeInternal(availableSize, false);
+                    bool isFreshLayout = false;
+
                     foreach (LayoutContext layoutContext in LayoutContexts)
                     {
-                        layoutContext.DockableCollection.Measure(layoutContext.DockableCollection.IsCollapsed ? new Size(0, 0) : layoutContext.Size);
+                        layoutContext.Size.PreMeasure();
+                        double availableHeight = layoutContext.Size.Height.IsSplitterActive ? layoutContext.Size.Height.InternalValue :
+                            layoutContext.Size.Height.HasUserValue ? layoutContext.Size.Height.UserValue : double.PositiveInfinity;
+                        double availableWidth = layoutContext.Size.Width.IsSplitterActive ? layoutContext.Size.Width.InternalValue :
+                            layoutContext.Size.Width.HasUserValue ? layoutContext.Size.Width.UserValue : double.PositiveInfinity;
+
+                        isFreshLayout = isFreshLayout || double.IsPositiveInfinity(availableHeight) || double.IsPositiveInfinity(availableWidth);
+                        layoutContext.DockableCollection.Measure(new Size(availableWidth, availableHeight));
+                        layoutContext.Size.PostMeasure();
                     }
-                }
+
+                    //  If everything has already been laid out, we're done. Otherwise, we need to do a preliminary arrangement and then remeasure
+
+                    if (isFreshLayout)
+                    {
+                        ArrangeInternal(availableSize, false);
+                        foreach (LayoutContext layoutContext in LayoutContexts)
+                        {
+                            layoutContext.Size.PreMeasure();
+                            layoutContext.DockableCollection.Measure(layoutContext.DockableCollection.IsCollapsed ? new Size(0, 0) : layoutContext.Size);
+                            layoutContext.Size.PostMeasure();
+                        }
+                    }
 
 #if POSITIONDUMP
                 Debug.Print("After MeasureOverride: AvailableSize=" + availableSize.Width.ToString("F0") + "," + availableSize.Height.ToString("F0"));
@@ -710,61 +736,72 @@ namespace Yawn
                     Debug.Print("    " + GetLayoutContext(child).ToString() + ": Desired Size: " + child.DesiredSize.Width.ToString("F0") + "," + child.DesiredSize.Height.ToString("F0"));
                 }
 #endif
-                switch (InternalChildren.Count)
-                {
-                    case 0:
-                        return new Size(0, 0);
-                    case 1:
-                        return InternalChildren[0].DesiredSize;
-                    default:
-                        if (availableSize.Width != double.PositiveInfinity && availableSize.Height != double.PositiveInfinity)
-                        {
-                            return availableSize;
-                        }
-                        else
-                        {
-                            return ArrangeInternal(new Size(SystemParameters.PrimaryScreenWidth, SystemParameters.PrimaryScreenHeight), false);
-                        }
+                    switch (InternalChildren.Count)
+                    {
+                        case 0:
+                            return new Size(0, 0);
+                        case 1:
+                            return InternalChildren[0].DesiredSize;
+                        default:
+                            if (availableSize.Width != double.PositiveInfinity && availableSize.Height != double.PositiveInfinity)
+                            {
+                                return availableSize;
+                            }
+                            else
+                            {
+                                //  TODO: If we can get the screen holding the main window, we should use that
+
+                                return ArrangeInternal(new Size(SystemParameters.PrimaryScreenWidth, SystemParameters.PrimaryScreenHeight), false);
+                            }
+                    }
                 }
             }
         }
 
         internal void OnAttachedPropertyChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            if (e.Property == DockPositionProperty)
+            using (new Activity(this))
             {
-                DockPositionPropertyChanged(sender, e);
+                if (e.Property == DockPositionProperty)
+                {
+                    DockPositionPropertyChanged(sender, e);
+                }
             }
         }
 
         protected override void OnVisualChildrenChanged(DependencyObject visualAdded, DependencyObject visualRemoved)
         {
-            base.OnVisualChildrenChanged(visualAdded, visualRemoved);
-
-            if (visualAdded is DockableCollection dockableCollection)
+            using (new Activity (this))
             {
-                AddChild(dockableCollection);
-            }
+                base.OnVisualChildrenChanged(visualAdded, visualRemoved);
 
-            if (visualRemoved is DockableCollection dockableCollection1)
-            {
-                LayoutContext layoutContext = GetLayoutContext(dockableCollection1);
-                layoutContext.Remove();
-                LayoutContexts.Remove(layoutContext);
-                SetLayoutContext(dockableCollection1, null);
-            }
+                if (visualAdded is DockableCollection dockableCollection)
+                {
+                    AddChild(dockableCollection);
+                }
 
-            _maximumHorizontalDepth = null;
-            _maximumVerticalDepth = null;
-            InvalidateArrange();
-            InvalidateMeasure();
+                if (visualRemoved is DockableCollection dockableCollection1)
+                {
+                    LayoutContext layoutContext = GetLayoutContext(dockableCollection1);
+                    layoutContext.Remove();
+                    LayoutContexts.Remove(layoutContext);
+                    SetLayoutContext(dockableCollection1, null);
+                }
+
+                _maximumHorizontalDepth = null;
+                _maximumVerticalDepth = null;
+                InvalidateArrange();
+            }
         }
 
-        internal void ReinsertDockableCollection(DockableCollection dockableCollection, System.Windows.Controls.Dock defaultPosition)
+        internal void StartActivity()
         {
-            LayoutContext layoutContext = GetLayoutContext(dockableCollection);
-            LayoutContexts.Add(layoutContext);
-            InsertByDockPosition(layoutContext, defaultPosition);
+            System.Threading.Interlocked.Increment(ref ActivityCount);
+        }
+
+        internal void StopActivity()
+        {
+            System.Threading.Interlocked.Decrement(ref ActivityCount);
         }
     }
 }

@@ -22,7 +22,7 @@ namespace Yawn
 
         public abstract LayoutContext GetNextDescendant(Silo silo, LayoutContext element, List<LayoutContext> elementsToBePositioned);
 
-        public abstract double GetPeersMaxDesiredSpace(LayoutContext element, double minimumSize, List<LayoutContext> elementsToBePositioned);
+        public abstract double GetPeersMaxDesiredSpace(LayoutContext element, double minimumSize, IEnumerable<LayoutContext> elementsToBePositioned);
 
         public abstract double GetPreceedingCoordinate(LayoutContext element);
 
@@ -57,7 +57,7 @@ namespace Yawn
     {
         public override double GetDesiredSpace(LayoutContext element, double minimumSize)
         {
-            double desiredSpace = Math.Max(element.Width.HasValue ? element.Width.Value : element.DockableCollection.DesiredSize.Width, minimumSize);
+            double desiredSpace = Math.Max(element.Size.Width.HasInternalValue ? element.Size.Width.InternalValue : element.DockableCollection.DesiredSize.Width, minimumSize);
             return desiredSpace;
         }
 
@@ -116,7 +116,7 @@ namespace Yawn
             varyingGroupCount += subtreesVaryingGroupCount;
         }
 
-        public override double GetPeersMaxDesiredSpace(LayoutContext element, double minimumSize, List<LayoutContext> elementsToBePositioned)
+        public override double GetPeersMaxDesiredSpace(LayoutContext element, double minimumSize, IEnumerable<LayoutContext> elementsToBePositioned)
         {
             double maxDesiredSpace = 0;
 
@@ -177,7 +177,7 @@ namespace Yawn
 
         public override bool IsStretchable(LayoutContext element)
         {
-            return double.IsNaN(element.DockableCollection.Width) &&
+            return !element.Size.Width.HasUserValue && !element.Size.Width.IsSplitterActive &&
                 element.DockableCollection.HorizontalContentAlignment == System.Windows.HorizontalAlignment.Stretch;
         }
 
@@ -204,7 +204,7 @@ namespace Yawn
         public override void SetPosition(Silo silo, LayoutContext element, double coordinate, double size, List<LayoutContext> elementsToBePositioned)
         {
             element.Left = coordinate;
-            element.Width = size;
+            element.Size.Width.SetInternalValue(size);
         }
     }
 
@@ -217,7 +217,7 @@ namespace Yawn
     {
         public override double GetDesiredSpace(LayoutContext element, double minimumSize)
         {
-            double desiredSize = Math.Max(element.Height.HasValue ? element.Height.Value : element.DockableCollection.DesiredSize.Height, minimumSize);
+            double desiredSize = Math.Max(element.Size.Height.HasInternalValue ? element.Size.Height.InternalValue : element.DockableCollection.DesiredSize.Height, minimumSize);
             return desiredSize;
         }
 
@@ -276,7 +276,7 @@ namespace Yawn
             return null;
         }
 
-        public override double GetPeersMaxDesiredSpace(LayoutContext element, double minimumSize, List<LayoutContext> elementsToBePositioned)
+        public override double GetPeersMaxDesiredSpace(LayoutContext element, double minimumSize, IEnumerable<LayoutContext> elementsToBePositioned)
         {
             double maxDesiredSpace = 0;
 
@@ -337,7 +337,7 @@ namespace Yawn
 
         public override bool IsStretchable(LayoutContext element)
         {
-            return double.IsNaN(element.DockableCollection.Height) &&
+            return !element.Size.Height.HasUserValue && !element.Size.Height.IsSplitterActive &&
                 element.DockableCollection.VerticalContentAlignment == System.Windows.VerticalAlignment.Stretch;
         }
 
@@ -364,7 +364,7 @@ namespace Yawn
         public override void SetPosition(Silo silo, LayoutContext element, double coordinate, double size, List<LayoutContext> elementsToBePositioned)
         {
             element.Top = coordinate;
-            element.Height = size;
+            element.Size.Height.SetInternalValue(size);
         }
     }
 }

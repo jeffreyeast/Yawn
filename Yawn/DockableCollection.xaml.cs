@@ -553,6 +553,12 @@ namespace Yawn
             return new DockableCollectionItem();
         }
 
+        protected override Size MeasureOverride(Size constraint)
+        {
+            Size result = base.MeasureOverride(constraint);
+            return result;
+        }
+
         protected override void OnItemsChanged(System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
             base.OnItemsChanged(e);
@@ -681,19 +687,15 @@ namespace Yawn
             {
                 OnVisibilityChanged((Visibility)e.OldValue, (Visibility)e.NewValue);
             }
-            else if (e.Property == WidthProperty)
+            else if (e.Property == WidthProperty && ((Dock?.DockingPanel?.IsIdle) ?? true))
             {
-                if (Width == 0)
-                {
-                    Debugger.Break();
-                }
+                LayoutContext layoutContext = DockingPanel.GetLayoutContext(this);
+                layoutContext.Size.Width.SetUserValue(Width);
             }
-            else if (e.Property == HeightProperty)
+            else if (e.Property == HeightProperty && ((Dock?.DockingPanel?.IsIdle) ?? true))
             {
-                if (Height == 0)
-                {
-                    Debugger.Break();
-                }
+                LayoutContext layoutContext = DockingPanel.GetLayoutContext(this);
+                layoutContext.Size.Height.SetUserValue(Height);
             }
         }
 

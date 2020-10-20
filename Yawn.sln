@@ -7,6 +7,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yawn", "Yawn\Yawn.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo", "Test3\Demo.csproj", "{F6D8C473-368C-44C4-95F7-ED9C2142A227}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{582B4E75-2680-4E0B-BD21-CD75914606E0}"
+	ProjectSection(SolutionItems) = preProject
+		CPOL.htm = CPOL.htm
+		README.md = README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

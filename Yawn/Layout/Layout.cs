@@ -330,7 +330,7 @@ namespace Yawn
                     {
                         layoutContext.Size.Height.SetInternalValue(LayoutHeight);
                     }
-                    if (IsHeightSplitterActive)
+                    if (IsWidthSplitterActive)
                     {
                         layoutContext.Size.Width.SetSplitter(LayoutWidth.Value);
                     }
